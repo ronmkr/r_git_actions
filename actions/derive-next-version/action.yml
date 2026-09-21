@@ -17,6 +17,11 @@ inputs:
     required: false
     default: "0.1.0"
 
+  always-bump-patch:
+    description: "If true and commits exist since last tag but no breaking/feat/fix changes were detected (e.g. chore/docs), force a patch bump."
+    required: false
+    default: "true"
+
 outputs:
   previous_version:
     description: "Latest valid SemVer tag found in repository, or empty string if none."

@@ -1,0 +1,95 @@
+name: "Detect Changes & Needs Build"
+description: "Identifies modified files against base branch or previous tag, determines if build/test/release steps are required via GitHub Script."
+author: "ronmkr"
+
+branding:
+  icon: "filter"
+  color: "orange"
+
+inputs:
+  base-ref:
+    description: "Base git ref, tag, or branch to compare against (defaults to PR base or repository default branch)."
+    required: false
+    default: ""
+
+  watch-paths:
+    description: "Comma-separated directory/file prefixes to track (e.g. 'src/,actions/,package.json'). If any match, needs_build is true. Defaults to all non-ignored files."
+    required: false
+    default: ""
+
+  ignore-paths:
+    description: "Comma-separated directory/file prefixes to ignore (e.g. 'docs/,.github/,*.md,LICENSE')."
+    required: false
+    default: "docs/,.github/,*.md,LICENSE"
+
+  github-token:
+    description: "GitHub token for querying commit comparisons via GitHub API."
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  has_changes:
+    description: "'true' if any non-ignored files changed, 'false' otherwise."
+    value: ${{ steps.detector.outputs.has_changes }}
+
+  needs_build:
+    description: "'true' if watched paths or codebase files changed requiring build/tests."
+    value: ${{ steps.detector.outputs.needs_build }}
+
+  changed_files:
+    description: "Space-separated list of modified files."
+    value: ${{ steps.detector.outputs.changed_files }}
+
+  changed_count:
+    description: "Number of modified files."
+    value: ${{ steps.detector.outputs.changed_count }}
+
+runs:
+  using: "composite"
+  steps:
+    - id: detector
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ inputs.github-token }}
+        script: |
+          const { owner, repo } = context.repo;
+          const headSha = context.sha;
+
+          let base = "${{ inputs.base-ref }}".trim();
+          if (!base) {
+            base = context.payload.pull_request?.base?.ref || context.payload.repository?.default_branch || "main";
+          }
+
+          core.info(`🔍 Comparing base '${base}' with head '${headSha}' via GitHub API...`);
+
+          const compare = await github.rest.repos.compareCommits({
+            owner,
+            repo,
+            base,
+            head: headSha,
+          });
+
+          const rawFiles = (compare.data.files || []).map((f) => f.filename);
+          core.info(`Found ${rawFiles.length} total modified file(s) in commit comparison.`);
+
+          const toList = (s) => s.split(',').map((x) => x.trim()).filter(Boolean);
+          const watchList = toList("${{ inputs.watch-paths }}");
+          const ignoreList = toList("${{ inputs.ignore-paths }}");
+
+          const matchPat = (file, list) => list.some((pat) => file.startsWith(pat) || file.endsWith(pat.replace(/^\*/, '')));
+
+          const filteredFiles = rawFiles.filter((f) => !matchPat(f, ignoreList));
+          const hasChanges = filteredFiles.length > 0;
+          const needsBuild = hasChanges && (watchList.length === 0 || filteredFiles.some((f) => matchPat(f, watchList)));
+
+          core.info("========================================");
+          core.info("📊 Detect Changes Result:");
+          core.info(`- Non-ignored changed files : ${filteredFiles.length}`);
+          core.info(`- Has changes               : ${hasChanges}`);
+          core.info(`- Needs build               : ${needsBuild}`);
+          core.info("========================================");
+
+          core.setOutput("has_changes", String(hasChanges));
+          core.setOutput("needs_build", String(needsBuild));
+          core.setOutput("changed_files", filteredFiles.join(" "));
+          core.setOutput("changed_count", String(filteredFiles.length));

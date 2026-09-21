@@ -1,0 +1,47 @@
+name: "Generate Release Audit"
+description: "Compiles an audit report of all Jira issues, merged PRs, and review approvals between two git tags, and enforces review compliance (rejecting committer self-approvals)."
+author: "ronmkr"
+
+branding:
+  icon: "file-text"
+  color: "purple"
+
+inputs:
+  base-tag:
+    description: "Previous release tag or git ref (e.g. '1.0.0')."
+    required: true
+
+  head-tag:
+    description: "Current release tag, branch, or ref (e.g. '1.1.0' or 'main')."
+    required: true
+
+  github-token:
+    description: "GitHub token or PAT with repo/contents permissions."
+    required: false
+    default: ${{ github.token }}
+
+  jira-project-keys:
+    description: "Comma-separated Jira project prefixes to filter (e.g. 'PROJ,CORE')."
+    required: false
+    default: ""
+
+  fail-on-violation:
+    description: "Whether to fail the action if any merged PR had an approver who committed changes to that PR."
+    required: false
+    default: "true"
+
+outputs:
+  total_commits:
+    description: "Total commits analyzed between tags."
+  total_prs:
+    description: "Number of pull requests included in release."
+  all_jiras:
+    description: "Comma-separated list of all unique Jira issue keys found."
+  violations_count:
+    description: "Number of PRs with committer self-approval violations."
+  is_compliant:
+    description: "'true' if 0 violations found, 'false' otherwise."
+
+runs:
+  using: "node24"
+  main: "dist/index.js"

@@ -1,0 +1,37 @@
+{
+  "name": "generate-release-audit",
+  "version": "1.0.0",
+  "description": "Generates a comprehensive audit report of Jira issues, merged PRs, and review approvals between two git tags, and fails if committer self-approvals are detected.",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "bundle": "ncc build src/main.ts -o dist --minify",
+    "test": "jest",
+    "all": "npm run test && npm run bundle"
+  },
+  "keywords": [
+    "actions",
+    "github",
+    "jira",
+    "audit",
+    "release",
+    "compliance"
+  ],
+  "author": "ronmkr",
+  "license": "MIT",
+  "dependencies": {
+    "@actions/core": "^1.11.1",
+    "@actions/github": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.17.19",
+    "@vercel/ncc": "^0.45.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.7.3"
+  },
+  "overrides": {
+    "undici": ">=6.27.1"
+  }
+}

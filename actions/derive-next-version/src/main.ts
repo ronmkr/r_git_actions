@@ -11,6 +11,7 @@ export async function run(): Promise<void> {
     const token = core.getInput("github-token") || process.env.GITHUB_TOKEN || "";
     if (token) core.setSecret(token);
     const defaultVersion = (core.getInput("default-version") || "0.1.0").replace(/^v/, "");
+    const alwaysBumpPatch = (core.getInput("always-bump-patch") || "true").toLowerCase() === "true";
 
     const octokit = github.getOctokit(token);
     const { owner, repo } = github.context.repo;
@@ -29,7 +30,12 @@ export async function run(): Promise<void> {
     core.info(`Analyzed ${commitMessages.length} commit(s)`);
 
     // 3. Determine Bump (strictly X.Y.Z)
-    const bumpType = evaluateConventionalBump(commitMessages);
+    let bumpType = evaluateConventionalBump(commitMessages);
+    if (bumpType === "none" && alwaysBumpPatch && commitMessages.length > 0) {
+      core.info("No breaking/feat/fix commit detected, but commits exist. Bumping PATCH (always-bump-patch=true).");
+      bumpType = "patch";
+    }
+
     const nextVersion = incrementSemVer(latestTag, bumpType, defaultVersion);
     const hasBump = bumpType !== "none";
 
