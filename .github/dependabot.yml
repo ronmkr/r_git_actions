@@ -4,32 +4,65 @@ updates:
   - package-ecosystem: "npm"
     directory: "/actions/validate-commit"
     schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 10
+      interval: "monthly"
+    open-pull-requests-limit: 1
+    groups:
+      dependencies:
+        patterns:
+          - "*"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   # Monitor npm dependencies for actions/setup-branching-strategy
   - package-ecosystem: "npm"
     directory: "/actions/setup-branching-strategy"
     schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 10
+      interval: "monthly"
+    open-pull-requests-limit: 1
+    groups:
+      dependencies:
+        patterns:
+          - "*"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   # Monitor npm dependencies for actions/prevent-committer-approval
   - package-ecosystem: "npm"
     directory: "/actions/prevent-committer-approval"
     schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 10
+      interval: "monthly"
+    open-pull-requests-limit: 1
+    groups:
+      dependencies:
+        patterns:
+          - "*"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   # Monitor npm dependencies for actions/validate-branch-promotion
   - package-ecosystem: "npm"
     directory: "/actions/validate-branch-promotion"
     schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 10
+      interval: "monthly"
+    open-pull-requests-limit: 1
+    groups:
+      dependencies:
+        patterns:
+          - "*"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   # Monitor GitHub Actions workflow versions in .github/workflows
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
+    open-pull-requests-limit: 1
+    groups:
+      actions:
+        patterns:
+          - "*"

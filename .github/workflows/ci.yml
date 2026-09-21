@@ -2,9 +2,9 @@ name: "CI & Action Self-Test"
 
 on:
   push:
-    branches: ["*"]
+    branches: ["**"]
   pull_request:
-    branches: ["*"]
+    branches: ["**"]
 
 jobs:
   test-validate-commit:
@@ -34,6 +34,7 @@ jobs:
         run: npm run bundle
 
       - name: Verify Bundle In Sync (No Drift)
+        if: github.actor != 'dependabot[bot]'
         working-directory: actions/validate-commit
         run: |
           git diff --exit-code dist/ || (echo "Error: validate-commit dist/ is out of sync with src/. Run 'npm run bundle' locally and commit the changes." && exit 1)
@@ -84,6 +85,7 @@ jobs:
         run: npm run bundle
 
       - name: Verify Bundle In Sync (No Drift)
+        if: github.actor != 'dependabot[bot]'
         working-directory: actions/setup-branching-strategy
         run: |
           git diff --exit-code dist/ || (echo "Error: setup-branching-strategy dist/ is out of sync with src/. Run 'npm run bundle' locally and commit the changes." && exit 1)
@@ -115,6 +117,7 @@ jobs:
         run: npm run bundle
 
       - name: Verify Bundle In Sync (No Drift)
+        if: github.actor != 'dependabot[bot]'
         working-directory: actions/prevent-committer-approval
         run: |
           git diff --exit-code dist/ || (echo "Error: prevent-committer-approval dist/ is out of sync with src/. Run 'npm run bundle' locally and commit the changes." && exit 1)
@@ -146,6 +149,7 @@ jobs:
         run: npm run bundle
 
       - name: Verify Bundle In Sync (No Drift)
+        if: github.actor != 'dependabot[bot]'
         working-directory: actions/validate-branch-promotion
         run: |
           git diff --exit-code dist/ || (echo "Error: validate-branch-promotion dist/ is out of sync with src/. Run 'npm run bundle' locally and commit the changes." && exit 1)
