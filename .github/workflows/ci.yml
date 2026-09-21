@@ -303,32 +303,21 @@ jobs:
     needs: [find-next-version]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Self-Test Action Approval Gate (Valid)
+        id: test-gate
+        uses: ./actions/action-approval-gate
         with:
-          node-version: "24"
-          cache: "npm"
-          cache-dependency-path: "actions/action-approval-gate/package-lock.json"
+          previous-outcome: "success"
+          expected-outcome: "success"
 
-      - name: Install dependencies
-        working-directory: actions/action-approval-gate
-        run: npm ci
-
-      - name: Run Jest Test Suite
-        working-directory: actions/action-approval-gate
-        run: npm test
-
-      - name: Build & Bundle
-        working-directory: actions/action-approval-gate
-        run: npm run bundle
-
-      - name: Verify Bundle In Sync (No Drift)
-        if: github.actor != 'dependabot[bot]'
-        working-directory: actions/action-approval-gate
+      - name: Verify Gate Outputs
         run: |
-          git diff --exit-code dist/ || (echo "Error: action-approval-gate dist/ is out of sync with src/. Run 'npm run bundle' locally and commit the changes." && exit 1)
+          if [ "${{ steps.test-gate.outputs.is-valid }}" != "true" ]; then
+            echo "Expected is-valid to be true"
+            exit 1
+          fi
 
   test-generate-release-audit:
     name: "3. CI/CD - Test generate-release-audit"
@@ -337,10 +326,10 @@ jobs:
     needs: [find-next-version]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "24"
           cache: "npm"
@@ -363,3 +352,4 @@ jobs:
         working-directory: actions/generate-release-audit
         run: |
           git diff --exit-code dist/ || (echo "Error: generate-release-audit dist/ is out of sync with src/. Run 'npm run bundle' locally and commit the changes." && exit 1)
+
