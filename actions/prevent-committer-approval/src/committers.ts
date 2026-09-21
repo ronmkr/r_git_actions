@@ -45,9 +45,11 @@ export async function getPrCommitters(
   core.info(`Retrieved ${commits.length} commit(s) from PR #${pullNumber}.`);
 
   for (const item of commits) {
-    const loginsInCommit = new Set<string>();
-    if (item.author?.login) loginsInCommit.add(item.author.login.trim().toLowerCase());
-    if (item.committer?.login) loginsInCommit.add(item.committer.login.trim().toLowerCase());
+    const loginsInCommit = new Set(
+      [item.author?.login, item.committer?.login]
+        .filter((l): l is string => Boolean(l))
+        .map((l) => l.trim().toLowerCase())
+    );
 
     for (const norm of loginsInCommit) {
       const originalLogin =

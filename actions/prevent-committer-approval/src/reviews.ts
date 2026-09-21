@@ -59,16 +59,13 @@ export async function getActiveApprovals(
     }
   }
 
-  const activeApprovals: ActiveApproval[] = [];
-  for (const review of latestByUser.values()) {
-    if (review.state === "APPROVED") {
-      activeApprovals.push({
-        reviewId: review.id,
-        reviewerLogin: review.login,
-        submittedAt: review.submittedAt,
-      });
-    }
-  }
+  const activeApprovals: ActiveApproval[] = Array.from(latestByUser.values())
+    .filter((r) => r.state === "APPROVED")
+    .map((r) => ({
+      reviewId: r.id,
+      reviewerLogin: r.login,
+      submittedAt: r.submittedAt,
+    }));
 
   core.info(`Found ${activeApprovals.length} active approval(s): [${activeApprovals.map(a => a.reviewerLogin).join(", ")}]`);
   return activeApprovals;

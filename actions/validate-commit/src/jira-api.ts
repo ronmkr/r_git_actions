@@ -33,14 +33,9 @@ export async function fetchJiraIssueStatus(
       "User-Agent": "github-actions-validate-commit",
     };
 
-    if (userEmail && userEmail.trim()) {
-      // Jira Cloud: Basic Auth (email + API token)
-      const creds = Buffer.from(`${userEmail.trim()}:${apiToken.trim()}`).toString("base64");
-      headers["Authorization"] = `Basic ${creds}`;
-    } else {
-      // Jira Server / Data Center: Bearer Token
-      headers["Authorization"] = `Bearer ${apiToken.trim()}`;
-    }
+    headers["Authorization"] = userEmail?.trim()
+      ? `Basic ${btoa(`${userEmail.trim()}:${apiToken.trim()}`)}`
+      : `Bearer ${apiToken.trim()}`;
 
     const response = await fetch(cleanUrl, { headers });
     if (!response.ok) {

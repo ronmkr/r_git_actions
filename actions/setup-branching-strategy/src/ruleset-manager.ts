@@ -139,7 +139,7 @@ export async function upsertRepoRuleset(
 
     const targetName = rulesetName.trim().toLowerCase();
     const existing = Array.isArray(existingRulesets)
-      ? existingRulesets.find((r: { id?: number; name?: string }) => r.name?.trim().toLowerCase() === targetName)
+      ? existingRulesets.find((r) => r?.name?.trim().toLowerCase() === targetName)
       : undefined;
 
     let resultId = 0;

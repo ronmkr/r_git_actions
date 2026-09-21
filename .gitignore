@@ -10,7 +10,8 @@ coverage/
 # Build & TypeScript intermediate files
 lib/
 *.tsbuildinfo
-# Note: actions/*/dist/ is intentionally committed so GitHub Actions can run without npm install
+*.map
+# Note: actions/*/dist/index.js is intentionally committed so GitHub Actions can run without npm install
 
 # Graphify analysis outputs & scratch
 graphify-out/
