@@ -2,84 +2,172 @@
 name: create-github-actions
 description: >-
   Build production-ready, reusable GitHub Actions using TypeScript, Node 20 runtime,
-  the official GitHub Actions Toolkit, modular single-responsibility features, and
-  pre-bundled distribution. Use whenever designing, implementing, testing, or publishing
-  custom or reusable GitHub Actions.
+  the official GitHub Actions Toolkit, composite github-script@v7 shortcuts,
+  ponytail minimalism, caveman simplicity, and pre-bundled distribution. Use
+  whenever designing, implementing, testing, or publishing custom or reusable GitHub Actions.
 ---
 
 # Create GitHub Actions Skill
 
-A comprehensive playbook and reference for creating production-ready, high-performance, and easily maintainable **reusable GitHub Actions**.
+A comprehensive playbook and reference for engineering production-ready, high-performance, and radically minimal **reusable GitHub Actions**.
 
 ---
 
-## 🏛️ Core Principles & Architecture
+## 🏛️ Core Principles & The Ponytail Ladder
 
-Follow these standards for every GitHub Action:
+Before writing any code or configuring a TypeScript project, climb the **Ponytail Ladder**:
 
-1. **Native Node 20 Runtime (`using: 'node20'`)**:
-   - Runs natively on GitHub runners (`ubuntu-latest`, `macos-latest`, `windows-latest`) without requiring setup steps (e.g. `setup-python` or `setup-node`).
-2. **Official GitHub Actions Toolkit**:
-   - Use [`@actions/core`](https://github.com/actions/toolkit/tree/main/packages/core) for inputs, outputs, logging, secrets masking, and step summaries.
-   - Use [`@actions/github`](https://github.com/actions/toolkit/tree/main/packages/github) for Octokit and event context payloads.
-   - Prefer native Node.js `fetch` over external HTTP libraries.
-3. **Modular Single-Responsibility Structure**:
-   - **1 Feature = 1 Dedicated File = 1 Primary Export Function**.
-   - Avoid helper sprawl, abstract factories, or deep inheritance ("caveman simplicity within modules").
-4. **Pre-Bundled Distribution (`@vercel/ncc`)**:
-   - Bundle all TypeScript and dependencies into a single executable file: `dist/index.js`.
-   - Consumers reference `uses: owner/repo/actions/<name>@v1` with **zero `npm install` overhead**.
-5. **Anti-Drift CI Check**:
-   - Every action repository MUST enforce `git diff --exit-code dist/` in CI to ensure committed bundles never drift from source code.
+1. **YAGNI & Native Platform First**:
+   - Do you actually need a custom action? Can a native GitHub feature (e.g., **GitHub Environments** with review rules for $0 runner approvals) or an existing step cover it?
+2. **Composite Action with `actions/github-script@v7`**:
+   - If the task only performs API queries, basic branch/tag creation, ref comparison, or simple gate logic, **do not build a TypeScript project**.
+   - Build a **Composite Action (`using: "composite"`)** powered by `actions/github-script@v7`. It eliminates `package.json`, `package-lock.json`, `tsconfig.json`, `jest`, and compiled `dist/` bundles (~750KB-1MB payload saved per action).
+3. **Compiled TypeScript Action (`using: "node20"`)**:
+   - Only escalate to a compiled TypeScript action when there is non-trivial domain logic, multi-step business logic, or algorithmic parsing requiring full modular test suites.
+4. **Strict `X.Y.Z` SemVer**:
+   - Tags and versions are strictly formatted as `X.Y.Z` (e.g., `1.0.0`, never prefixed with `v` like `v1.0.0`). Sanitize all inputs via `.replace(/^v/, '')`.
+5. **Caveman Simplicity (Boring Over Clever)**:
+   - 1 Feature = 1 File = 1 Primary Function.
+   - No unnecessary abstractions: no interface with 1 implementation, no abstract factories, no speculative scaffolding for "later".
+   - Native Node.js `fetch` and standard library (`Buffer.from` over `btoa`, ES6 spread `[...]` over `Array.from`).
 
 ---
 
-## 📁 Recommended Repository Layout
+## 📁 Repository Architecture & Layout
+
+Organize actions by choosing the leanest architecture on the ladder:
 
 ```text
 <repo-root>/
 ├── .github/
-│   ├── dependabot.yml           # Automated dependency updates for npm and actions
 │   └── workflows/
 │       └── ci.yml               # Unit tests, bundle verification & action self-testing
-├── actions/                     # Scalable folder holding multiple reusable actions
-│   └── <action-name>/
-│       ├── action.yml           # GitHub Action definition (runs on Node 20)
+├── actions/
+│   ├── <simple-action>/         # 🟢 COMPOSITE ACTION (github-script@v7)
+│   │   ├── action.yml           # Runs actions/github-script@v7 directly. No npm build.
+│   │   └── README.md            # Inputs, outputs & usage
+│   │
+│   └── <complex-action>/        # 🟡 COMPILED NODE ACTION (TypeScript)
+│       ├── action.yml           # using: "node20", main: "dist/index.js"
 │       ├── package.json         # Toolkit dependencies & build/test scripts
-│       ├── tsconfig.json        # TypeScript configuration
-│       ├── jest.config.js       # Unit testing configuration
-│       ├── README.md            # Action usage guide, inputs, outputs & permissions
+│       ├── tsconfig.json        # Target ES2022+
+│       ├── jest.config.js       # Unit tests
 │       ├── dist/
-│       │   └── index.js         # Single compiled bundle (COMMITTED)
+│       │   └── index.js         # Single compiled bundle via @vercel/ncc (COMMITTED)
+│       ├── README.md
 │       └── src/
-│           ├── main.ts          # Linear orchestration entry point
-│           ├── <feature-1>.ts   # Focused feature module
-│           ├── <feature-2>.ts   # Focused feature module
-│           └── __tests__/       # Matching unit tests for each feature
-│               ├── <feature-1>.test.ts
-│               └── <feature-2>.test.ts
-├── .gitignore
+│           ├── main.ts          # Linear entry point (reads inputs, executes, outputs)
+│           ├── <feature>.ts     # Pure function with focused responsibility
+│           └── __tests__/       # Fast, deterministic unit tests
+│               └── <feature>.test.ts
 ├── LICENSE
-└── README.md                    # Root catalog of all actions in the repository
+└── README.md                    # Catalog of all actions in the repository
 ```
 
 ---
 
-## 📋 Step-by-Step Implementation Guide
+## 🛠️ Pattern 1: Composite GitHub-Script Action (The Minimalist Choice)
 
-### Step 1: Initialize Action Package
+Use this pattern for quick guards, gates, ref creation, or PR file detection.
 
-In `actions/<action-name>/package.json`:
+### `actions/<simple-action>/action.yml`
+
+```yaml
+name: "Action Approval Gate"
+description: "Synchronous guard validating prior step outcomes and actor permissions."
+author: "ronmkr"
+
+branding:
+  icon: "check-circle"
+  color: "green"
+
+inputs:
+  previous-outcome:
+    description: "Outcome of previous step ('success' or 'failure')."
+    required: false
+    default: "success"
+  expected-outcome:
+    description: "Expected outcome required to proceed."
+    required: false
+    default: "success"
+  allowed-actors:
+    description: "Comma-separated list of allowed GitHub usernames."
+    required: false
+    default: ""
+
+outputs:
+  is-valid:
+    description: "'true' if valid, 'false' otherwise."
+    value: ${{ steps.gate.outputs.is-valid }}
+
+runs:
+  using: "composite"
+  steps:
+    - id: gate
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const previous = "${{ inputs.previous-outcome }}".trim().toLowerCase() || "success";
+          const expected = "${{ inputs.expected-outcome }}".trim().toLowerCase() || "success";
+          const allowed = "${{ inputs.allowed-actors }}".split(/[\n,]/).map(s => s.trim().toLowerCase()).filter(Boolean);
+          const actor = context.actor.toLowerCase();
+
+          if (previous !== expected) {
+            core.setOutput("is-valid", "false");
+            core.setFailed(`⛔ Gate Blocked: '${previous}' !== '${expected}'.`);
+            return;
+          }
+
+          if (allowed.length > 0 && !allowed.includes(actor)) {
+            core.setOutput("is-valid", "false");
+            core.setFailed(`⛔ Unauthorized actor '@${context.actor}'.`);
+            return;
+          }
+
+          core.setOutput("is-valid", "true");
+          core.info(`✅ Gate Passed: actor '@${context.actor}' authorized.`);
+```
+
+### 1-Call Idempotent Git Ref Creation
+
+Instead of making 2 network calls (`getRef` + `createRef`), directly attempt `createRef` and catch HTTP 422:
+
+```javascript
+try {
+  await github.rest.git.createRef({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    ref: `refs/tags/${tagName}`,
+    sha: context.sha,
+  });
+  core.setOutput("created", "true");
+} catch (err) {
+  if (err.status === 422) {
+    core.info(`⚠️ Tag '${tagName}' already exists. Skipping.`);
+    core.setOutput("created", "false");
+    return;
+  }
+  throw err;
+}
+```
+
+---
+
+## ⚙️ Pattern 2: Compiled TypeScript Action (For Complex Logic)
+
+When full TypeScript, modular unit testing, and heavy parsing are required:
+
+### 1. `package.json` Standard Setup
 
 ```json
 {
-  "name": "<action-name>",
+  "name": "derive-next-version",
   "version": "1.0.0",
-  "description": "Reusable GitHub Action description",
+  "description": "Calculates next SemVer X.Y.Z bump based on Conventional Commits.",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "bundle": "ncc build src/main.ts -o dist --source-map --license licenses.txt",
+    "bundle": "ncc build src/main.ts -o dist --minify",
     "test": "jest",
     "all": "npm run test && npm run bundle"
   },
@@ -90,7 +178,7 @@ In `actions/<action-name>/package.json`:
   "devDependencies": {
     "@types/jest": "^29.5.14",
     "@types/node": "^20.17.19",
-    "@vercel/ncc": "^0.38.3",
+    "@vercel/ncc": "^0.45.0",
     "jest": "^29.7.0",
     "ts-jest": "^29.2.5",
     "typescript": "^5.7.3"
@@ -98,194 +186,91 @@ In `actions/<action-name>/package.json`:
 }
 ```
 
-### Step 2: Define `action.yml`
+### 2. Functional Predicates Over Mutable Loops
 
-```yaml
-name: "Action Name"
-description: "Clear summary of what the action does"
-author: "Author or Org Name"
-
-branding:
-  icon: "check-circle"
-  color: "blue"
-
-inputs:
-  my-input:
-    description: "Input description"
-    required: false
-    default: "true"
-  github-token:
-    description: "GitHub token for API calls and PR comments"
-    required: false
-    default: ${{ github.token }}
-
-outputs:
-  is-valid:
-    description: "'true' if validation passed, 'false' otherwise."
-  result-data:
-    description: "Output data"
-
-runs:
-  using: "node20"
-  main: "dist/index.js"
-```
-
-### Step 3: Implement Modular Features (`src/`)
-
-Keep each feature file strictly focused on **one task** with **one primary function**:
+Avoid accumulator objects and mutable multi-line loops. Use functional standard methods (`flatMap`, `some`, `filter`, `find`):
 
 ```typescript
-// src/<feature>.ts
-export interface FeatureResult {
-  isValid: boolean;
-  data?: string;
-  error?: string;
+// ❌ Verbose mutable loop
+let bump = "none";
+for (const m of messages) {
+  if (isMajor(m)) { bump = "major"; break; }
 }
 
-export function validateFeature(input: string): FeatureResult {
-  if (!input.trim()) {
-    return { isValid: false, error: "Input is empty." };
-  }
-  // Perform core check directly
-  return { isValid: true, data: input.trim() };
-}
+// ✅ Ponytail functional predicate
+if (messages.some(m => isMajor(m))) return "major";
+if (messages.some(m => isMinor(m))) return "minor";
+if (messages.some(m => isPatch(m))) return "patch";
+return "none";
 ```
 
-### Step 4: Implement Orchestrator (`src/main.ts`)
-
-`main.ts` should be a clean, linear script connecting inputs, features, outputs, and reporting:
+### 3. Safe Boolean and CSV Parsers
 
 ```typescript
-import * as core from "@actions/core";
-import * as github from "@actions/github";
-import { validateFeature } from "./feature";
-
-// Safe boolean helper: avoids crashing if empty string or non-YAML value passed
-function getBool(name: string, defaultValue = false): boolean {
+export const getBool = (name: string, fallback = false): boolean => {
   const val = core.getInput(name).trim().toLowerCase();
-  if (!val) return defaultValue;
-  return val === "true" || val === "1" || val === "yes";
-}
+  return val ? ["true", "1", "yes"].includes(val) : fallback;
+};
 
-export async function run(): Promise<void> {
-  try {
-    // 1. Read Inputs
-    const token = core.getInput("github-token");
-    if (token) core.setSecret(token); // Mask sensitive tokens in runner logs
-
-    const isEnabled = getBool("my-input", true);
-
-    // 2. Execute Feature Validations
-    const result = validateFeature("some-value");
-
-    // 3. Set Outputs
-    core.setOutput("is-valid", String(result.isValid));
-
-    // 4. GitHub Job Step Summary (Visible on Actions run overview page)
-    try {
-      await core.summary
-        .addHeading("Action Run Summary", 2)
-        .addTable([
-          [{ data: "Item", header: true }, { data: "Status", header: true }],
-          ["Result", result.isValid ? "✅ Passed" : "❌ Failed"],
-        ])
-        .write();
-    } catch {
-      core.debug("Unable to write step summary.");
-    }
-
-    // 5. Fail job on error
-    if (!result.isValid) {
-      core.setFailed(result.error || "Validation failed.");
-    } else {
-      core.info("🎉 All checks passed!");
-    }
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    core.setFailed(`Action execution failed: ${msg}`);
-  }
-}
-
-if (require.main === module) {
-  run();
-}
+export const parseCsv = (name: string): string[] =>
+  core.getInput(name).split(",").map((s) => s.trim()).filter(Boolean);
 ```
 
-### Step 5: Pull Request Commenting Pattern (Idempotent / No Spam)
+### 4. Idempotent PR Comments (No Spam Pattern)
 
-When publishing PR comments, use a hidden HTML comment marker to detect and **update existing comments** on new pushes rather than spamming new comments:
+Always tag comments with a unique HTML marker to update existing comments on repeated runs rather than creating clutter:
 
 ```typescript
-export const COMMENT_TAG = "<!-- my-action-comment-tag -->";
+export const COMMENT_TAG = "<!-- my-action-identifier -->";
 
-export async function postOrUpdatePrComment(options: {
-  githubToken: string;
-  owner: string;
-  repo: string;
-  pullNumber: number;
-  body: string;
-}): Promise<void> {
-  const { githubToken, owner, repo, pullNumber, body } = options;
-  const octokit = github.getOctokit(githubToken);
-
-  const { data: comments } = await octokit.rest.issues.listComments({
-    owner,
-    repo,
-    issue_number: pullNumber,
-  });
-
+export async function postOrUpdateComment(
+  octokit: OctokitClient,
+  owner: string,
+  repo: string,
+  issue_number: number,
+  bodyText: string
+): Promise<void> {
+  const { data: comments } = await octokit.rest.issues.listComments({ owner, repo, issue_number });
   const existing = comments.find((c) => c.body?.includes(COMMENT_TAG));
-  const fullBody = `${COMMENT_TAG}\n${body}`;
+  const fullBody = `${COMMENT_TAG}\n${bodyText}`;
 
   if (existing) {
-    await octokit.rest.issues.updateComment({
-      owner,
-      repo,
-      comment_id: existing.id,
-      body: fullBody,
-    });
+    await octokit.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body: fullBody });
   } else {
-    await octokit.rest.issues.createComment({
-      owner,
-      repo,
-      issue_number: pullNumber,
-      body: fullBody,
-    });
+    await octokit.rest.issues.createComment({ owner, repo, issue_number, body: fullBody });
   }
 }
 ```
-
-### Step 6: GitHub Rulesets & Branch Governance Pattern (Idempotent / No Duplicates)
-
-When configuring repository branch strategies, use **GitHub Repository Rulesets** instead of legacy branch protection API:
-
-1. **Check Existing Rulesets First**: Query `GET /repos/{owner}/{repo}/rulesets` to locate existing rulesets by name.
-2. **Update in Place (`PUT`)**: If an existing ruleset matches, call `PUT /repos/{owner}/{repo}/rulesets/{id}` rather than `POST` to avoid confusing duplicate rulesets.
-3. **Block Direct Commits**: Adding a `pull_request` rule with empty bypass actors (`bypass_actors: []`) automatically blocks direct pushes to protected branches.
-4. **Bake In Governance Best Practices**:
-   - Minimum 2 required approvers (`required_approving_review_count: 2`).
-   - Dismiss stale approvals on push (`dismiss_stale_reviews_on_push: true`).
-   - Require review thread resolution (`required_review_thread_resolution: true`).
-   - Require last push approval (`require_last_push_approval: true`).
-   - Require CODEOWNERS review (`require_code_owner_review: true`).
-   - Prevent deletions (`type: "deletion"`) & force pushes (`type: "non_fast_forward"`).
-   - Linear history (`type: "required_linear_history"`).
-5. **PR Promotion Validation**:
-   - Enforce sequential branch promotion hierarchies in PR workflows (e.g. `develop -> main` in GitFlow, `dev -> uat -> prd` in GitOps).
-6. **Actor Authorization**:
-   - Restrict administrative action execution to permitted GitHub usernames (`allowed-actors`) via `github.context.actor` checks.
 
 ---
 
-## 🔒 Crucial Best Practices & Pitfalls
+## 🛡️ Governance & Branch Strategy Patterns
 
-| Category | Best Practice | Rationale |
+When automating branch protection or rulesets:
+
+1. **Use Modern Rulesets (`rest.repos.getRepoRulesets` / `createRepoRuleset` / `updateRepoRuleset`)**:
+   - Modern GitHub Rulesets replace legacy branch protection.
+   - Always verify if a ruleset with the target name exists; update in-place (`updateRepoRuleset`) to guarantee idempotency.
+2. **Baseline Security Governance**:
+   - Minimum 2 approvals (`required_approving_review_count: 2`).
+   - Dismiss stale reviews on push (`dismiss_stale_reviews_on_push: true`).
+   - Require review thread resolution (`required_review_thread_resolution: true`).
+   - Require last push approval (`require_last_push_approval: true`).
+   - Restrict bypass actors (`bypass_actors: []`).
+3. **Independent Review Enforcement**:
+   - PR authors and committers must not approve their own PRs.
+   - Inspect all PR commit authors/committers against review state `APPROVED`.
+   - Dismiss committer approvals automatically or fail the release audit check.
+
+---
+
+## 🚫 Anti-Patterns & Critical Pitfalls
+
+| Anti-Pattern | Correct Ponytail / Caveman Practice | Rationale |
 |---|---|---|
-| **Git Tracking** | **NEVER ignore `actions/*/dist/` in `.gitignore`** | GitHub Actions downloads the action source at runtime. If `dist/index.js` is ignored, the action fails immediately with file not found. |
-| **Drift Prevention** | Run `git diff --exit-code dist/` in CI | Guarantees that contributors always bundle their TypeScript changes before pushing. |
-| **Security** | Always call `core.setSecret(token)` | Prevents tokens from leaking into logs during exceptions or debugging. |
-| **Governance** | Default to minimum 2 approvers & thread resolution | Prevents self-merges and unreviewed bug promotions in production. |
-| **Rulesets** | Upsert rulesets idempotently | Avoids duplicate, conflicting ruleset entries in repository settings. |
-| **Permissions** | Specify required permissions in docs | e.g. `pull-requests: write` when commenting, `administration: write` for rulesets. |
-| **Inputs** | Use safe boolean parsing | `core.getBooleanInput` throws if string is empty; a fallback parser prevents avoidable crashes. |
-| **Dependencies** | Automate updates with Dependabot | Keeps action dependencies patched for vulnerabilities without manual overhead. |
+| Prefixed Tags (`v1.0.0`) | Strict plain `X.Y.Z` (`1.0.0`) | Eliminates regex hacks and cross-tool discrepancies. Sanitize with `.replace(/^v/, '')`. |
+| Active Polling Runners | Native GitHub Environments with Review Rules | Active polling consumes runner minutes and hits 6-hour timeouts. Native environments cost $0 and wait up to 30 days. |
+| Ignoring `dist/` in git | Always commit `dist/index.js` | GitHub Actions runs pre-bundled JavaScript directly. Without `dist/index.js`, consumer workflows fail immediately. |
+| Rebuilding Wheel (Moment/Axios) | Native `fetch` & `Intl.DateTimeFormat` | Zero external network/parsing dependencies. Built into Node.js 18+. |
+| Unmasked Tokens | `core.setSecret(token)` | Prevents secret leakage in action execution logs and exceptions. |
+| Multi-call API checks | Catch specific HTTP status errors (e.g. 404, 422) | Cuts GitHub API rate-limit usage and runner latency in half. |
