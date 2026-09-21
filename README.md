@@ -1,6 +1,6 @@
 # Reusable GitHub Actions (`r_git_actions`)
 
-A centralized collection of production-ready, reusable GitHub Actions built with the **official GitHub Actions Toolkit** and running natively on **Node 20**.
+A centralized collection of production-ready, reusable GitHub Actions built with the **official GitHub Actions Toolkit** and running natively on **Node 24**.
 
 ---
 
@@ -8,10 +8,10 @@ A centralized collection of production-ready, reusable GitHub Actions built with
 
 | Action | Description | Path | Runtime |
 |---|---|---|---|
-| **[validate-commit](actions/validate-commit/README.md)** | Validates commit messages across PR commits with Jira key regex, optional Conventional Commits, and optional Jira REST API status check. | `ronmkr/r_git_actions/actions/validate-commit@v1` | Node 20 |
-| **[setup-branching-strategy](actions/setup-branching-strategy/README.md)** | Idempotently creates branches and applies **GitHub Repository Rulesets** with industry best practices (minimum 2 approvers, CODEOWNERS, thread resolution, blocks direct commits). | `ronmkr/r_git_actions/actions/setup-branching-strategy@v1` | Node 20 |
-| **[prevent-committer-approval](actions/prevent-committer-approval/README.md)** | Enforces strictly independent code reviews by preventing PR authors and committers from approving their own PRs, automatically dismissing self-approvals via GitHub REST API. | `ronmkr/r_git_actions/actions/prevent-committer-approval@v1` | Node 20 |
-| **[validate-branch-promotion](actions/validate-branch-promotion/README.md)** | Enforces structured branch merge promotion policies (e.g. `dev -> uat -> prd` in GitOps, `develop -> main` in GitFlow) on Pull Requests. | `ronmkr/r_git_actions/actions/validate-branch-promotion@v1` | Node 20 |
+| **[validate-commit](actions/validate-commit/README.md)** | Validates commit messages across PR commits with Jira key regex, optional Conventional Commits, and optional Jira REST API status check. | `ronmkr/r_git_actions/actions/validate-commit@v1` | Node 24 |
+| **[setup-branching-strategy](actions/setup-branching-strategy/README.md)** | Idempotently creates branches and applies **GitHub Repository Rulesets** with industry best practices (minimum 2 approvers, CODEOWNERS, thread resolution, blocks direct commits). | `ronmkr/r_git_actions/actions/setup-branching-strategy@v1` | Node 24 |
+| **[prevent-committer-approval](actions/prevent-committer-approval/README.md)** | Enforces strictly independent code reviews by preventing PR authors and committers from approving their own PRs, automatically dismissing self-approvals via GitHub REST API. | `ronmkr/r_git_actions/actions/prevent-committer-approval@v1` | Node 24 |
+| **[validate-branch-promotion](actions/validate-branch-promotion/README.md)** | Enforces structured branch merge promotion policies (e.g. `dev -> uat -> prd` in GitOps, `develop -> main` in GitFlow) on Pull Requests. | `ronmkr/r_git_actions/actions/validate-branch-promotion@v1` | Node 24 |
 
 ---
 
@@ -122,7 +122,7 @@ r_git_actions/
 │       └── ci.yml               # Automated CI test suite, linting, and bundle drift checks
 ├── actions/                     # Individual reusable actions
 │   ├── prevent-committer-approval/
-│   │   ├── action.yml           # Action metadata (Node 20 runtime)
+│   │   ├── action.yml           # Action metadata (Node 24 runtime)
 │   │   ├── package.json         # Toolkit dependencies
 │   │   ├── src/
 │   │   │   ├── main.ts          # Action orchestration
@@ -135,7 +135,7 @@ r_git_actions/
 │   │   │   └── index.js         # Compiled standalone executable
 │   │   └── README.md            # Action documentation
 │   ├── setup-branching-strategy/
-│   │   ├── action.yml           # Action metadata (Node 20 runtime)
+│   │   ├── action.yml           # Action metadata (Node 24 runtime)
 │   │   ├── package.json         # Toolkit dependencies
 │   │   ├── src/
 │   │   │   ├── main.ts          # Action orchestration (branch & ruleset provisioning)
@@ -149,7 +149,7 @@ r_git_actions/
 │   │   │   └── index.js         # Compiled standalone executable
 │   │   └── README.md            # Action documentation
 │   ├── validate-branch-promotion/
-│   │   ├── action.yml           # Action metadata (Node 20 runtime)
+│   │   ├── action.yml           # Action metadata (Node 24 runtime)
 │   │   ├── package.json         # Toolkit dependencies
 │   │   ├── src/
 │   │   │   ├── main.ts          # Action orchestration (promotion validation)
@@ -160,7 +160,7 @@ r_git_actions/
 │   │   │   └── index.js         # Compiled standalone executable
 │   │   └── README.md            # Action documentation
 │   └── validate-commit/
-│       ├── action.yml           # Action metadata (Node 20 runtime)
+│       ├── action.yml           # Action metadata (Node 24 runtime)
 │       ├── package.json         # Toolkit dependencies
 │       ├── src/
 │       │   ├── main.ts          # Action orchestration
