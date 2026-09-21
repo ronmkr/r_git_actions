@@ -56,6 +56,20 @@ updates:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
 
+  # Monitor npm dependencies for actions/derive-next-version
+  - package-ecosystem: "npm"
+    directory: "/actions/derive-next-version"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 1
+    groups:
+      dependencies:
+        patterns:
+          - "*"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
   # Monitor GitHub Actions workflow versions in .github/workflows
   - package-ecosystem: "github-actions"
     directory: "/"

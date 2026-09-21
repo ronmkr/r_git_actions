@@ -1,0 +1,32 @@
+name: "Derive Next Version"
+description: "Derives the next SemVer 2.0 release version (X.Y.Z) by evaluating repository tags and Conventional Commits."
+author: "ronmkr"
+
+branding:
+  icon: "tag"
+  color: "blue"
+
+inputs:
+  github-token:
+    description: "GitHub token for querying repository tags and commits."
+    required: false
+    default: ${{ github.token }}
+
+  default-version:
+    description: "Initial fallback version when no tags exist in the repository."
+    required: false
+    default: "0.1.0"
+
+outputs:
+  previous_version:
+    description: "Latest valid SemVer tag found in repository, or empty string if none."
+  version:
+    description: "Next derived SemVer 2.0 version strictly formatted as X.Y.Z."
+  bump_type:
+    description: "Determined bump type: major, minor, patch, or none."
+  has_bump:
+    description: "Whether a version increment occurred ('true' or 'false')."
+
+runs:
+  using: "node24"
+  main: "dist/index.js"

@@ -1,7 +1,7 @@
 {
-  "name": "prevent-committer-approval",
+  "name": "derive-next-version",
   "version": "1.0.0",
-  "description": "GitHub Action that prohibits PR committers from approving the PR, automatically dismissing non-compliant approvals.",
+  "description": "Automates release versioning by combining Conventional Commits and Semantic Versioning (SemVer 2.0).",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
@@ -12,10 +12,9 @@
   "keywords": [
     "actions",
     "github",
-    "pull-request",
-    "code-review",
-    "governance",
-    "compliance"
+    "semver",
+    "conventional-commits",
+    "versioning"
   ],
   "author": "ronmkr",
   "license": "MIT",

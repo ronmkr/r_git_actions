@@ -15,26 +15,14 @@ export interface AuthCheckResult {
  * If allowedActorsInput is empty, all actors are permitted by default.
  */
 export function checkAllowedActors(allowedActorsInput: string, actor: string): AuthCheckResult {
-  const allowed = allowedActorsInput
-    .split(/[\n,]/)
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean);
-
-  if (allowed.length === 0) {
-    return { allowed: true, actor, allowedActors: [] };
+  const allowed = allowedActorsInput.split(/[\n,]/).map((s) => s.trim().toLowerCase()).filter(Boolean);
+  if (allowed.length === 0 || allowed.includes((actor || "").trim().toLowerCase())) {
+    return { allowed: true, actor, allowedActors: allowed };
   }
-
-  const currentActor = (actor || "").trim().toLowerCase();
-  const isAuthorized = allowed.includes(currentActor);
-
-  if (!isAuthorized) {
-    return {
-      allowed: false,
-      actor,
-      allowedActors: allowed,
-      reason: `Actor '${actor}' is not authorized to execute this strategy workflow. Permitted actors: [${allowed.join(", ")}]`,
-    };
-  }
-
-  return { allowed: true, actor, allowedActors: allowed };
+  return {
+    allowed: false,
+    actor,
+    allowedActors: allowed,
+    reason: `Actor '${actor}' is not authorized to execute this strategy workflow. Permitted actors: [${allowed.join(", ")}]`,
+  };
 }

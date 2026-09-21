@@ -70,38 +70,10 @@ export async function getPrCommits(options: CommitExtractionOptions): Promise<Co
           return selected;
         }
       } catch (err) {
-        core.warning(`GitHub API failed to list PR commits: ${err}. Attempting git log fallback.`);
+        core.warning(`GitHub API failed to list PR commits: ${err}.`);
       }
     }
 
-    // Fallback: git log strictly between base and head SHA
-    if (pr.base?.sha && pr.head?.sha) {
-      try {
-        // Ensure base reference commit is fetched
-        try {
-          execSync(`git fetch origin ${pr.base.sha} --depth=50`, { stdio: "ignore" });
-        } catch {
-          // ignore fetch error
-        }
-
-        const cmd = `git log ${pr.base.sha}..${pr.head.sha} --format="---COMMIT---%h%n%B"`;
-        const output = execSync(cmd, { encoding: "utf-8" });
-        const rawBlocks = output.split("---COMMIT---").map((b) => b.trim()).filter(Boolean);
-
-        const prCommits: CommitInfo[] = rawBlocks
-          .map(parseCommitBlock)
-          .filter((c): c is CommitInfo => c !== undefined);
-
-        if (prCommits.length > 0) {
-          core.info(`Retrieved ${prCommits.length} commit(s) from git range ${pr.base.sha.substring(0, 7)}..${pr.head.sha.substring(0, 7)}.`);
-          return prCommits;
-        }
-      } catch (gitErr) {
-        core.debug(`Git range log failed: ${gitErr}`);
-      }
-    }
-
-    // Fallback to PR title if no commits could be extracted
     core.warning("Could not extract individual PR commits; falling back to PR title.");
     return [{ message: pr.title.trim() }];
   }

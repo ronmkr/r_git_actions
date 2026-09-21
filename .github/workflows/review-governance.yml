@@ -1,0 +1,23 @@
+name: "Code Review Governance"
+
+on:
+  pull_request_review:
+    types: [submitted, edited]
+
+jobs:
+  prevent-committer-approval:
+    name: "Prevent Committer Self-Approval"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify Independent Review Governance
+        uses: ./actions/prevent-committer-approval
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          fail-on-violation: "false"
+          post-comment: "true"

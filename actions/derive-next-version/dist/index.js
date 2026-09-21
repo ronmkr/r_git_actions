@@ -47960,289 +47960,68 @@ function wrappy (fn, cb) {
 
 /***/ }),
 
-/***/ 2246:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+/***/ 5477:
+/***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
 
-/**
- * Feature: PR Dismissal Feedback Comment
- * Posts or updates an idempotent comment on the Pull Request when an approval is dismissed.
- */
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.DISMISSAL_COMMENT_TAG = void 0;
-exports.postDismissalComment = postDismissalComment;
-const core = __importStar(__nccwpck_require__(7484));
-exports.DISMISSAL_COMMENT_TAG = "<!-- prevent-committer-approval-comment -->";
-async function postDismissalComment(octokit, owner, repo, pullNumber, violations, hasViolation = true) {
-    const body = hasViolation
-        ? `${exports.DISMISSAL_COMMENT_TAG}
-## ⚠️ Committer Approval Dismissed
-
-According to our engineering governance policy, **contributors and authors cannot approve their own pull requests or commits**.
-
-The following approval review(s) were automatically dismissed:
-${violations.map((v) => `- **@${v.reviewerLogin}** (${v.isPrAuthor ? "PR Author" : `${v.commitCount} commit(s) in PR`}) — Review #${v.reviewId} ${v.dismissed ? "✅ Dismissed" : `❌ Dismissal failed: ${v.error}`}`).join("\n")}
-
-### 📋 Next Steps
-- An independent reviewer who has **not** contributed commits to this Pull Request must review and approve the changes before merge.
-`
-        : `${exports.DISMISSAL_COMMENT_TAG}
-## ✅ Independent Code Review Verified
-
-All active approvals on this Pull Request have been verified as independent. No author or committer self-approvals detected.
-`;
-    try {
-        core.info(`Checking for existing governance comments on PR #${pullNumber}...`);
-        const { data: comments } = await octokit.rest.issues.listComments({
+exports.CONVENTIONAL_COMMIT_REGEX = void 0;
+exports.cleanHeader = cleanHeader;
+exports.evaluateConventionalBump = evaluateConventionalBump;
+exports.fetchCommitMessages = fetchCommitMessages;
+function cleanHeader(header) {
+    return header
+        .replace(/^\[[A-Z][A-Z0-9]+-[0-9]+\]\s*/i, "")
+        .replace(/^[A-Z][A-Z0-9]+-[0-9]+:\s*/i, "")
+        .replace(/\s*\([A-Z][A-Z0-9]+-[0-9]+\)$/i, "")
+        .trim();
+}
+exports.CONVENTIONAL_COMMIT_REGEX = /^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([a-zA-Z0-9_.\-\/]+\))?(!)?: .+/;
+function evaluateConventionalBump(messages) {
+    let bump = "none";
+    for (const message of messages) {
+        if (!message || !message.trim())
+            continue;
+        const lines = message.trim().split(/\r?\n/);
+        const rawHeader = lines[0] || "";
+        const header = cleanHeader(rawHeader);
+        const match = header.match(exports.CONVENTIONAL_COMMIT_REGEX);
+        const hasBreakingHeader = Boolean(match && match[3] === "!");
+        const hasBreakingBody = /(^|\n|\r)BREAKING[ -]CHANGE:\s*.+/m.test(message);
+        if (hasBreakingHeader || hasBreakingBody) {
+            return "major";
+        }
+        if (!match)
+            continue;
+        const type = match[1].toLowerCase();
+        if (type === "feat") {
+            bump = "minor";
+        }
+        else if (bump !== "minor" &&
+            (type === "fix" || type === "perf" || type === "refactor" || type === "revert")) {
+            bump = "patch";
+        }
+    }
+    return bump;
+}
+async function fetchCommitMessages(octokit, owner, repo, baseTagRef, headSha) {
+    if (baseTagRef) {
+        const compare = await octokit.rest.repos.compareCommits({
             owner,
             repo,
-            issue_number: pullNumber,
+            base: baseTagRef,
+            head: headSha,
         });
-        const existing = comments.find((c) => c.body?.includes(exports.DISMISSAL_COMMENT_TAG));
-        if (existing) {
-            core.info(`Updating existing governance comment #${existing.id}...`);
-            await octokit.rest.issues.updateComment({
-                owner,
-                repo,
-                comment_id: existing.id,
-                body,
-            });
-        }
-        else if (hasViolation) {
-            core.info(`Posting new governance comment on PR #${pullNumber}...`);
-            await octokit.rest.issues.createComment({
-                owner,
-                repo,
-                issue_number: pullNumber,
-                body,
-            });
-        }
+        return compare.data.commits.map((c) => c.commit.message);
     }
-    catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        core.warning(`Could not post PR governance comment: ${msg}`);
-    }
-}
-
-
-/***/ }),
-
-/***/ 8098:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-/**
- * Feature: PR Committers and Author Extractor
- * Identifies all GitHub users who contributed commits or authored the Pull Request.
- */
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getPrCommitters = getPrCommitters;
-const core = __importStar(__nccwpck_require__(7484));
-/**
- * Fetches all unique GitHub logins that authored or committed changes to the PR.
- */
-async function getPrCommitters(octokit, owner, repo, pullNumber, prAuthor) {
-    const committers = new Map();
-    if (prAuthor) {
-        const norm = prAuthor.trim().toLowerCase();
-        committers.set(norm, {
-            login: prAuthor.trim(),
-            isPrAuthor: true,
-            commitCount: 0,
-        });
-    }
-    core.info(`Fetching commits for PR #${pullNumber} in ${owner}/${repo}...`);
-    const commits = await octokit.paginate(octokit.rest.pulls.listCommits, {
+    const list = await octokit.rest.repos.listCommits({
         owner,
         repo,
-        pull_number: pullNumber,
+        sha: headSha,
         per_page: 100,
     });
-    core.info(`Retrieved ${commits.length} commit(s) from PR #${pullNumber}.`);
-    for (const item of commits) {
-        const loginsInCommit = new Set([item.author?.login, item.committer?.login]
-            .filter((l) => Boolean(l))
-            .map((l) => l.trim().toLowerCase()));
-        for (const norm of loginsInCommit) {
-            const originalLogin = item.author?.login?.toLowerCase() === norm
-                ? item.author.login.trim()
-                : item.committer?.login?.trim() || norm;
-            const existing = committers.get(norm);
-            if (existing) {
-                existing.commitCount += 1;
-            }
-            else {
-                committers.set(norm, {
-                    login: originalLogin,
-                    isPrAuthor: norm === prAuthor?.toLowerCase(),
-                    commitCount: 1,
-                });
-            }
-        }
-    }
-    core.info(`Identified ${committers.size} unique author(s)/committer(s) in PR #${pullNumber}: [${Array.from(committers.values()).map(c => c.login).join(", ")}]`);
-    return committers;
-}
-
-
-/***/ }),
-
-/***/ 6258:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-/**
- * Feature: Non-Compliant Review Dismissal Manager
- * Identifies approvals from committers/authors and dismisses them via the GitHub REST API.
- */
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.dismissCommitterApprovals = dismissCommitterApprovals;
-const core = __importStar(__nccwpck_require__(7484));
-/**
- * Checks active approvals against the set of committers/authors and dismisses non-compliant reviews.
- */
-async function dismissCommitterApprovals(octokit, owner, repo, pullNumber, approvals, committers, dismissMessage) {
-    const results = [];
-    for (const approval of approvals) {
-        const norm = approval.reviewerLogin.toLowerCase();
-        const committerInfo = committers.get(norm);
-        if (committerInfo) {
-            core.warning(`🚨 Policy Violation Detected: Reviewer '@${approval.reviewerLogin}' has contributed commits or authored PR #${pullNumber} (isAuthor: ${committerInfo.isPrAuthor}, commits: ${committerInfo.commitCount}). Self-approval is disallowed.`);
-            const fullMessage = `${dismissMessage.trim()} (Reviewer: @${approval.reviewerLogin} contributed to this PR).`;
-            try {
-                await octokit.rest.pulls.dismissReview({
-                    owner,
-                    repo,
-                    pull_number: pullNumber,
-                    review_id: approval.reviewId,
-                    message: fullMessage,
-                });
-                core.info(`🗑️ Successfully dismissed approval review #${approval.reviewId} from '@${approval.reviewerLogin}'.`);
-                results.push({
-                    reviewId: approval.reviewId,
-                    reviewerLogin: approval.reviewerLogin,
-                    isPrAuthor: committerInfo.isPrAuthor,
-                    commitCount: committerInfo.commitCount,
-                    dismissed: true,
-                });
-            }
-            catch (err) {
-                const msg = err instanceof Error ? err.message : String(err);
-                core.error(`Failed to dismiss review #${approval.reviewId} from '@${approval.reviewerLogin}': ${msg}`);
-                results.push({
-                    reviewId: approval.reviewId,
-                    reviewerLogin: approval.reviewerLogin,
-                    isPrAuthor: committerInfo.isPrAuthor,
-                    commitCount: committerInfo.commitCount,
-                    dismissed: false,
-                    error: msg,
-                });
-            }
-        }
-    }
-    return results;
+    return list.data.map((c) => c.commit.message);
 }
 
 
@@ -48290,117 +48069,55 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = run;
 const core = __importStar(__nccwpck_require__(7484));
 const github = __importStar(__nccwpck_require__(3228));
-const committers_1 = __nccwpck_require__(8098);
-const reviews_1 = __nccwpck_require__(2530);
-const dismissal_1 = __nccwpck_require__(6258);
-const comment_1 = __nccwpck_require__(2246);
-function getBool(name, defaultValue = false) {
-    const val = core.getInput(name).trim().toLowerCase();
-    if (!val)
-        return defaultValue;
-    return val === "true" || val === "1" || val === "yes";
-}
+const tags_1 = __nccwpck_require__(9506);
+const commits_1 = __nccwpck_require__(5477);
+const semver_1 = __nccwpck_require__(1475);
+const summary_1 = __nccwpck_require__(8855);
 async function run() {
     try {
-        const githubToken = core.getInput("github-token");
-        if (githubToken)
-            core.setSecret(githubToken);
-        if (!githubToken) {
-            core.setFailed("Input 'github-token' is required to inspect and dismiss PR reviews.");
-            return;
-        }
-        const prPayload = github.context.payload.pull_request;
-        const rawPullNumber = core.getInput("pull-number") || prPayload?.number || github.context.issue.number;
-        const pullNumber = parseInt(String(rawPullNumber), 10);
-        if (!pullNumber || isNaN(pullNumber)) {
-            core.setFailed("Could not determine Pull Request number. Please provide 'pull-number' input or run on pull_request / pull_request_review events.");
-            return;
-        }
-        const repoInput = core.getInput("repository") ||
-            github.context.payload.repository?.full_name ||
-            `${github.context.repo.owner}/${github.context.repo.repo}`;
-        const [owner, repo] = repoInput.split("/");
-        if (!owner || !repo) {
-            core.setFailed(`Invalid repository format '${repoInput}'. Expected 'owner/repo'.`);
-            return;
-        }
-        const dismissMessage = core.getInput("dismiss-message") ||
-            "Automated Governance: PR authors and committers cannot approve their own pull requests.";
-        const postComment = getBool("post-comment", true);
-        const failOnViolation = getBool("fail-on-violation", true);
-        const excludeBots = getBool("exclude-bots", false);
-        const prAuthor = prPayload?.user?.login;
-        core.info("========================================");
-        core.info(`🔍 Enforcing Independent PR Review Governance for ${owner}/${repo}#${pullNumber}`);
-        core.info(`- PR Author              : ${prAuthor || "N/A"}`);
-        core.info(`- Post PR Comment        : ${postComment}`);
-        core.info(`- Fail on Violation      : ${failOnViolation}`);
-        core.info(`- Exclude Bots           : ${excludeBots}`);
-        core.info("========================================\n");
-        const octokit = github.getOctokit(githubToken);
-        // 1. Fetch all authors and committers in the PR
-        const committers = await (0, committers_1.getPrCommitters)(octokit, owner, repo, pullNumber, prAuthor);
-        // 2. Fetch all currently active approval reviews
-        const approvals = await (0, reviews_1.getActiveApprovals)(octokit, owner, repo, pullNumber, excludeBots);
-        // 3. Dismiss any approvals from PR committers or authors
-        const dismissalResults = await (0, dismissal_1.dismissCommitterApprovals)(octokit, owner, repo, pullNumber, approvals, committers, dismissMessage);
-        const hasViolation = dismissalResults.length > 0;
-        const dismissedUsers = dismissalResults.map((r) => r.reviewerLogin);
-        // 4. Set Outputs
-        core.setOutput("has-violation", String(hasViolation));
-        core.setOutput("dismissed-approvers", dismissedUsers.join(","));
-        core.setOutput("dismissed-count", String(dismissalResults.length));
-        // 5. Post or update feedback comment on PR if enabled
-        if (postComment) {
-            await (0, comment_1.postDismissalComment)(octokit, owner, repo, pullNumber, dismissalResults, hasViolation);
-        }
-        // 6. Visual Step Summary
-        if (hasViolation) {
-            try {
-                await core.summary
-                    .addHeading("⚠️ Self-Approval Policy Violation Detected", 2)
-                    .addTable([
-                    [{ data: "Reviewer", header: true }, { data: "Role in PR", header: true }, { data: "Review ID", header: true }, { data: "Action", header: true }],
-                    ...dismissalResults.map((r) => [
-                        `@${r.reviewerLogin}`,
-                        r.isPrAuthor ? "PR Author" : `${r.commitCount} commit(s)`,
-                        `#${r.reviewId}`,
-                        r.dismissed ? "✅ Dismissed" : `❌ Error: ${r.error}`,
-                    ]),
-                ])
-                    .write();
-            }
-            catch {
-                core.debug("Unable to write step summary.");
-            }
-            if (failOnViolation) {
-                core.setFailed(`PR #${pullNumber} violates independent review policy: ${dismissalResults.length} committer approval(s) detected and dismissed (${dismissedUsers.join(", ")}). Independent review required.`);
-            }
-            else {
-                core.warning(`PR #${pullNumber} committer approvals were dismissed (${dismissedUsers.join(", ")}), but 'fail-on-violation' is disabled.`);
-            }
-        }
-        else {
-            core.info("🎉 All PR approvals are compliant! No committer self-approvals detected.");
-            try {
-                await core.summary
-                    .addHeading("✅ PR Review Governance Compliant", 2)
-                    .addTable([
-                    [{ data: "Attribute", header: true }, { data: "Status", header: true }],
-                    ["Total Active Approvals", String(approvals.length)],
-                    ["Committer Approvals Found", "0"],
-                    ["Independent Reviews Verified", "PASSED ✅"],
-                ])
-                    .write();
-            }
-            catch {
-                core.debug("Unable to write step summary.");
-            }
-        }
+        const token = core.getInput("github-token") || process.env.GITHUB_TOKEN || "";
+        if (token)
+            core.setSecret(token);
+        const defaultVersion = (core.getInput("default-version") || "0.1.0").replace(/^v/, "");
+        const octokit = github.getOctokit(token);
+        const { owner, repo } = github.context.repo;
+        const sha = github.context.sha;
+        core.info(`Evaluating SemVer for ${owner}/${repo} at ref ${sha}`);
+        // 1. Discover Previous Version (last valid SemVer tag by creation date)
+        const latestTag = (0, tags_1.fetchLatestTag)();
+        const previousVersion = latestTag ? latestTag.raw : "";
+        const baseTagRef = latestTag ? latestTag.tagName : "";
+        core.info(`Previous SemVer: ${previousVersion || "None"} (ref: ${baseTagRef || "None"})`);
+        // 2. Analyze Commits between last tag and current commit against Conventional Commits
+        const commitMessages = await (0, commits_1.fetchCommitMessages)(octokit, owner, repo, baseTagRef, sha);
+        core.info(`Analyzed ${commitMessages.length} commit(s)`);
+        // 3. Determine Bump (strictly X.Y.Z)
+        const bumpType = (0, commits_1.evaluateConventionalBump)(commitMessages);
+        const nextVersion = (0, semver_1.incrementSemVer)(latestTag, bumpType, defaultVersion);
+        const hasBump = bumpType !== "none";
+        core.info(`Bump: ${bumpType} -> Next: ${nextVersion}`);
+        const resolution = {
+            previousVersion,
+            nextVersion,
+            bumpType,
+            hasBump,
+            commitCount: commitMessages.length,
+        };
+        // 4. Applies & Exports the Version:
+        // Sets $GITHUB_OUTPUT parameters (version, version_clean, bump_type, has_bump, previous_version)
+        core.setOutput("previous_version", resolution.previousVersion);
+        core.setOutput("version", resolution.nextVersion);
+        core.setOutput("bump_type", resolution.bumpType);
+        core.setOutput("has_bump", String(resolution.hasBump));
+        // Exports environment variables ($VERSION, $NEXT_VERSION) into $GITHUB_ENV as X.Y.Z
+        core.exportVariable("VERSION", resolution.nextVersion);
+        core.exportVariable("NEXT_VERSION", resolution.nextVersion);
+        // Job Step Summary
+        await (0, summary_1.writeSummary)(resolution);
     }
     catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
-        core.setFailed(`Action execution failed: ${msg}`);
+        core.setFailed(`SemVer failed: ${msg}`);
     }
 }
 if (require.main === require.cache[eval('__filename')]) {
@@ -48410,15 +48127,82 @@ if (require.main === require.cache[eval('__filename')]) {
 
 /***/ }),
 
-/***/ 2530:
+/***/ 1475:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.parseSemVer = parseSemVer;
+exports.compareSemVer = compareSemVer;
+exports.incrementSemVer = incrementSemVer;
+/**
+ * Parses a git tag into a SemVer 2.0 object.
+ * Strips optional leading 'v' for the clean SemVer 'raw' field.
+ */
+function parseSemVer(tag) {
+    const trimmed = tag.trim();
+    const clean = trimmed.replace(/^v/, "");
+    const match = clean.match(/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/);
+    if (!match)
+        return null;
+    return {
+        tagName: trimmed,
+        raw: `${match[1]}.${match[2]}.${match[3]}`,
+        major: parseInt(match[1], 10),
+        minor: parseInt(match[2], 10),
+        patch: parseInt(match[3], 10),
+    };
+}
+/**
+ * Compares two SemVer objects descending (highest version first).
+ */
+function compareSemVer(a, b) {
+    return b.major - a.major || b.minor - a.minor || b.patch - a.patch;
+}
+/**
+ * Increments SemVer version strictly formatted as X.Y.Z (no v prefix).
+ */
+function incrementSemVer(current, bump, fallbackVersion = "0.1.0") {
+    const cleanFallback = fallbackVersion.trim().replace(/^v/, "");
+    if (!current) {
+        const parsedFallback = parseSemVer(cleanFallback);
+        if (!parsedFallback || bump === "none") {
+            return cleanFallback || "0.1.0";
+        }
+        if (parsedFallback.major === 0 && parsedFallback.minor === 0 && parsedFallback.patch === 0) {
+            return incrementSemVer(parsedFallback, bump, cleanFallback);
+        }
+        return cleanFallback;
+    }
+    let { major, minor, patch } = current;
+    switch (bump) {
+        case "major":
+            major += 1;
+            minor = 0;
+            patch = 0;
+            break;
+        case "minor":
+            minor += 1;
+            patch = 0;
+            break;
+        case "patch":
+            patch += 1;
+            break;
+        case "none":
+            break;
+    }
+    return `${major}.${minor}.${patch}`;
+}
+
+
+/***/ }),
+
+/***/ 8855:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
 
-/**
- * Feature: PR Reviews Extractor
- * Retrieves all active approval reviews submitted on the Pull Request.
- */
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -48453,52 +48237,55 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getActiveApprovals = getActiveApprovals;
+exports.writeSummary = writeSummary;
 const core = __importStar(__nccwpck_require__(7484));
+async function writeSummary(res) {
+    await core.summary
+        .addHeading("SemVer 2.0 (X.Y.Z)", 2)
+        .addTable([
+        [{ data: "Metric", header: true }, { data: "Value", header: true }],
+        ["Previous Version", res.previousVersion || "None"],
+        ["Next Version", res.nextVersion],
+        ["Bump Strategy", res.bumpType.toUpperCase()],
+        ["Has Bump", res.hasBump ? "Yes" : "No"],
+        ["Commits Analyzed", res.commitCount.toString()],
+    ])
+        .write();
+}
+
+
+/***/ }),
+
+/***/ 9506:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.fetchLatestTag = fetchLatestTag;
+exports.defaultGetLocalGitTags = defaultGetLocalGitTags;
+const child_process_1 = __nccwpck_require__(5317);
+const semver_1 = __nccwpck_require__(1475);
 /**
- * Fetches all currently active approval reviews for a pull request.
- * If a reviewer approved and later requested changes or dismissed, only the latest state counts.
+ * Returns the latest valid SemVer tag ordered chronologically by creation date.
+ * Uses local git tags sorted by -creatordate.
  */
-async function getActiveApprovals(octokit, owner, repo, pullNumber, excludeBots = false) {
-    core.info(`Fetching reviews for PR #${pullNumber}...`);
-    const reviews = await octokit.paginate(octokit.rest.pulls.listReviews, {
-        owner,
-        repo,
-        pull_number: pullNumber,
-        per_page: 100,
-    });
-    core.info(`Found ${reviews.length} review submission(s). Resolving latest reviewer states...`);
-    // Track latest review per reviewer
-    // GitHub returns reviews chronologically
-    const latestByUser = new Map();
-    for (const r of reviews) {
-        if (!r.user?.login)
-            continue;
-        const login = r.user.login.trim();
-        const norm = login.toLowerCase();
-        if (excludeBots && (login.endsWith("[bot]") || r.user.type === "Bot")) {
-            core.debug(`Skipping bot reviewer '${login}'.`);
-            continue;
-        }
-        // Only review states that represent review decisions
-        if (r.state === "APPROVED" || r.state === "CHANGES_REQUESTED" || r.state === "DISMISSED") {
-            latestByUser.set(norm, {
-                id: r.id,
-                state: r.state,
-                login: login,
-                submittedAt: r.submitted_at,
-            });
-        }
+function fetchLatestTag(gitExecutor = defaultGetLocalGitTags) {
+    for (const tag of gitExecutor()) {
+        const parsed = (0, semver_1.parseSemVer)(tag);
+        if (parsed)
+            return parsed;
     }
-    const activeApprovals = Array.from(latestByUser.values())
-        .filter((r) => r.state === "APPROVED")
-        .map((r) => ({
-        reviewId: r.id,
-        reviewerLogin: r.login,
-        submittedAt: r.submittedAt,
-    }));
-    core.info(`Found ${activeApprovals.length} active approval(s): [${activeApprovals.map(a => a.reviewerLogin).join(", ")}]`);
-    return activeApprovals;
+    return null;
+}
+function defaultGetLocalGitTags() {
+    try {
+        const raw = (0, child_process_1.execSync)('git for-each-ref --sort=-creatordate --format="%(refname:short)" refs/tags', { encoding: "utf-8", stdio: ["ignore", "pipe", "ignore"] });
+        return raw.split(/\r?\n/).map((t) => t.trim()).filter(Boolean);
+    }
+    catch {
+        return [];
+    }
 }
 
 

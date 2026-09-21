@@ -18,11 +18,7 @@ function matchesPattern(source: string, pattern: string): boolean {
   if (pattern === "*") return true;
   const s = source.toLowerCase();
   const p = pattern.toLowerCase();
-  if (p.endsWith("/*")) {
-    const prefix = p.slice(0, -2);
-    return s === prefix || s.startsWith(`${prefix}/`);
-  }
-  return s === p;
+  return p.endsWith("/*") ? s === p.slice(0, -2) || s.startsWith(p.slice(0, -1)) : s === p;
 }
 
 /**
