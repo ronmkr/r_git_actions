@@ -56,27 +56,24 @@ runs:
 
           const { owner, repo } = context.repo;
           const sha = context.sha;
-          const ref = `tags/${tagName}`;
 
-          // Check if tag already exists in the repository
           try {
-            await github.rest.git.getRef({ owner, repo, ref });
-            core.info(`⚠️ Tag '${tagName}' already exists. Skipping creation to preserve idempotency.`);
+            core.info(`🏷️ Creating tag '${tagName}' pointing to commit ${sha}...`);
+            await github.rest.git.createRef({
+              owner,
+              repo,
+              ref: `refs/tags/${tagName}`,
+              sha,
+            });
+            core.info(`✅ Successfully created and pushed tag '${tagName}'.`);
             core.setOutput('tag', tagName);
-            core.setOutput('created', 'false');
-            return;
+            core.setOutput('created', 'true');
           } catch (err) {
-            if (err.status !== 404) throw err;
+            if (err.status === 422) {
+              core.info(`⚠️ Tag '${tagName}' already exists. Skipping creation to preserve idempotency.`);
+              core.setOutput('tag', tagName);
+              core.setOutput('created', 'false');
+              return;
+            }
+            throw err;
           }
-
-          core.info(`🏷️ Creating tag '${tagName}' pointing to commit ${sha}...`);
-          await github.rest.git.createRef({
-            owner,
-            repo,
-            ref: `refs/tags/${tagName}`,
-            sha,
-          });
-
-          core.info(`✅ Successfully created and pushed tag '${tagName}'.`);
-          core.setOutput('tag', tagName);
-          core.setOutput('created', 'true');

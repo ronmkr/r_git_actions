@@ -35,7 +35,7 @@ export async function fetchJiraIssueStatus(
     };
 
     headers["Authorization"] = userEmail?.trim()
-      ? `Basic ${btoa(`${userEmail.trim()}:${apiToken.trim()}`)}`
+      ? `Basic ${Buffer.from(`${userEmail.trim()}:${apiToken.trim()}`).toString("base64")}`
       : `Bearer ${apiToken.trim()}`;
 
     const response = await fetch(cleanUrl, { headers });
@@ -88,9 +88,8 @@ export async function validateJiraStatus(
     };
   }
 
-  const normStatus = status.trim().toLowerCase();
-  const disallowedNormalized = disallowedStatuses.map((s) => s.trim().toLowerCase());
-  if (disallowedNormalized.includes(normStatus)) {
+  const norm = status.trim().toLowerCase();
+  if (disallowedStatuses.some((s) => s.trim().toLowerCase() === norm)) {
     return {
       isValid: false,
       issueKey,
@@ -99,8 +98,7 @@ export async function validateJiraStatus(
     };
   }
 
-  const allowedNormalized = allowedStatuses.map((s) => s.trim().toLowerCase());
-  if (allowedNormalized.length > 0 && !allowedNormalized.includes(normStatus)) {
+  if (allowedStatuses.length > 0 && !allowedStatuses.some((s) => s.trim().toLowerCase() === norm)) {
     return {
       isValid: false,
       issueKey,

@@ -82,12 +82,7 @@ runs:
           const hasChanges = filteredFiles.length > 0;
           const needsBuild = hasChanges && (watchList.length === 0 || filteredFiles.some((f) => matchPat(f, watchList)));
 
-          core.info("========================================");
-          core.info("📊 Detect Changes Result:");
-          core.info(`- Non-ignored changed files : ${filteredFiles.length}`);
-          core.info(`- Has changes               : ${hasChanges}`);
-          core.info(`- Needs build               : ${needsBuild}`);
-          core.info("========================================");
+          core.info(`📊 Changes: ${filteredFiles.length} non-ignored file(s), has_changes=${hasChanges}, needs_build=${needsBuild}`);
 
           core.setOutput("has_changes", String(hasChanges));
           core.setOutput("needs_build", String(needsBuild));

@@ -13,37 +13,29 @@ export const CONVENTIONAL_COMMIT_REGEX =
   /^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([a-zA-Z0-9_.\-\/]+\))?(!)?: .+/;
 
 export function evaluateConventionalBump(messages: string[]): BumpType {
-  let bump: BumpType = "none";
+  const cleanMessages = messages.filter((m) => m && m.trim());
+  if (cleanMessages.length === 0) return "none";
 
-  for (const message of messages) {
-    if (!message || !message.trim()) continue;
-
-    const lines = message.trim().split(/\r?\n/);
-    const rawHeader = lines[0] || "";
-    const header = cleanHeader(rawHeader);
-
+  const hasMajor = cleanMessages.some((m) => {
+    const header = cleanHeader(m.trim().split(/\r?\n/)[0] || "");
     const match = header.match(CONVENTIONAL_COMMIT_REGEX);
-    const hasBreakingHeader = Boolean(match && match[3] === "!");
-    const hasBreakingBody = /(^|\n|\r)BREAKING[ -]CHANGE:\s*.+/m.test(message);
+    return Boolean(match && match[3] === "!") || /(^|\n|\r)BREAKING[ -]CHANGE:\s*.+/m.test(m);
+  });
+  if (hasMajor) return "major";
 
-    if (hasBreakingHeader || hasBreakingBody) {
-      return "major";
-    }
+  const hasFeat = cleanMessages.some((m) => {
+    const header = cleanHeader(m.trim().split(/\r?\n/)[0] || "");
+    const match = header.match(CONVENTIONAL_COMMIT_REGEX);
+    return Boolean(match && match[1].toLowerCase() === "feat");
+  });
+  if (hasFeat) return "minor";
 
-    if (!match) continue;
-
-    const type = match[1].toLowerCase();
-    if (type === "feat") {
-      bump = "minor";
-    } else if (
-      bump !== "minor" &&
-      (type === "fix" || type === "perf" || type === "refactor" || type === "revert")
-    ) {
-      bump = "patch";
-    }
-  }
-
-  return bump;
+  const hasPatch = cleanMessages.some((m) => {
+    const header = cleanHeader(m.trim().split(/\r?\n/)[0] || "");
+    const match = header.match(CONVENTIONAL_COMMIT_REGEX);
+    return Boolean(match && ["fix", "perf", "refactor", "revert"].includes(match[1].toLowerCase()));
+  });
+  return hasPatch ? "patch" : "none";
 }
 
 export async function fetchCommitMessages(

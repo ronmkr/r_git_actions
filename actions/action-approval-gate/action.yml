@@ -25,9 +25,48 @@ inputs:
 outputs:
   is-valid:
     description: "'true' if previous outcome matches expected and actor is authorized, 'false' otherwise."
+    value: ${{ steps.gate.outputs.is-valid }}
   actor:
     description: "The evaluated GitHub actor."
+    value: ${{ steps.gate.outputs.actor }}
 
 runs:
-  using: "node24"
-  main: "dist/index.js"
+  using: "composite"
+  steps:
+    - id: gate
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const previousOutcome = "${{ inputs.previous-outcome }}".trim().toLowerCase() || "success";
+          const expectedOutcome = "${{ inputs.expected-outcome }}".trim().toLowerCase() || "success";
+          const allowedInput = "${{ inputs.allowed-actors }}";
+          const actor = context.actor;
+
+          core.info(`🚦 Gate: previous='${previousOutcome}', expected='${expectedOutcome}', actor='@${actor}'`);
+
+          if (previousOutcome !== expectedOutcome) {
+            core.setOutput("is-valid", "false");
+            core.setFailed(`⛔ Gate Blocked: Previous outcome '${previousOutcome}' !== expected '${expectedOutcome}'.`);
+            return;
+          }
+
+          const allowed = allowedInput.split(/[\n,]/).map((s) => s.trim().toLowerCase()).filter(Boolean);
+          if (allowed.length > 0 && !allowed.includes((actor || "").trim().toLowerCase())) {
+            core.setOutput("is-valid", "false");
+            core.setFailed(`⛔ Security Violation: Actor '@${actor}' is not authorized. Permitted: [${allowed.join(", ")}]`);
+            return;
+          }
+
+          core.setOutput("is-valid", "true");
+          core.setOutput("actor", actor);
+          core.info(`✅ Gate Passed: Previous outcome is '${previousOutcome}' and actor '@${actor}' is authorized.`);
+
+          await core.summary
+            .addHeading("✅ Action Approval Gate Passed", 2)
+            .addTable([
+              [{ data: "Metric", header: true }, { data: "Value", header: true }],
+              ["Previous Outcome", previousOutcome.toUpperCase()],
+              ["Status", "APPROVED / READY"],
+              ["Actor", `@${actor}`],
+            ])
+            .write();

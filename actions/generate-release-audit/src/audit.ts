@@ -3,13 +3,6 @@ import { extractJiraKeys } from "./jira";
 
 type OctokitClient = ReturnType<typeof github.getOctokit>;
 
-export interface CommitInfo {
-  sha: string;
-  message: string;
-  authorLogin: string;
-  committerLogin: string;
-}
-
 export interface PrAuditRecord {
   prNumber: number;
   title: string;
@@ -73,26 +66,16 @@ export async function generateReleaseAudit(
     head: headTag,
   });
 
-  const commits: CommitInfo[] = (compare.data.commits || []).map((c) => ({
-    sha: c.sha,
-    message: c.commit.message,
-    authorLogin: c.author?.login || "",
-    committerLogin: c.committer?.login || "",
-  }));
-
-  // Identify distinct PRs merged in this range
+  const commits = compare.data.commits || [];
   const prNumbers = new Set(
-    commits.map((c) => extractPrNumberFromCommit(c.message)).filter((n): n is number => Boolean(n))
+    commits.map((c) => extractPrNumberFromCommit(c.commit.message)).filter((n): n is number => Boolean(n))
   );
 
-  // Also query commits by PR association API if few or none found via messages
   const prRecords: PrAuditRecord[] = [];
   const allJiraSet = new Set<string>();
 
   // Collect Jiras directly from commits
-  for (const c of commits) {
-    extractJiraKeys(c.message, projectKeys).forEach((k) => allJiraSet.add(k));
-  }
+  commits.flatMap((c) => extractJiraKeys(c.commit.message, projectKeys)).forEach((k) => allJiraSet.add(k));
 
   for (const prNumber of prNumbers) {
     const { data: pr } = await octokit.rest.pulls.get({
@@ -137,19 +120,15 @@ export async function generateReleaseAudit(
     }
 
     const approvers = [...latestByUser].filter(([_, s]) => s === "APPROVED").map(([u]) => u);
-
-    const compliance = evaluatePrApprovalCompliance(
-      prAuthor,
-      Array.from(committersSet),
-      approvers
-    );
+    const committers = [...committersSet];
+    const compliance = evaluatePrApprovalCompliance(prAuthor, committers, approvers);
 
     prRecords.push({
       prNumber,
       title: pr.title,
       url: pr.html_url,
       author: prAuthor,
-      committers: Array.from(committersSet),
+      committers,
       approvers,
       jiraKeys: prJiras,
       hasCommitterApprovalViolation: compliance.hasViolation,
@@ -164,7 +143,7 @@ export async function generateReleaseAudit(
     headTag,
     totalCommits: commits.length,
     prs: prRecords,
-    allJiraKeys: Array.from(allJiraSet).sort(),
+    allJiraKeys: [...allJiraSet].sort(),
     violationsCount,
   };
 }
