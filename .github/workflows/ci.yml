@@ -17,7 +17,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           cache: "npm"
           cache-dependency-path: "actions/validate-commit/package-lock.json"
 
@@ -67,7 +67,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           cache: "npm"
           cache-dependency-path: "actions/setup-branching-strategy/package-lock.json"
 
@@ -98,7 +98,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           cache: "npm"
           cache-dependency-path: "actions/prevent-committer-approval/package-lock.json"
 
@@ -129,7 +129,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           cache: "npm"
           cache-dependency-path: "actions/validate-branch-promotion/package-lock.json"
 
@@ -165,3 +165,38 @@ jobs:
             echo "Expected is-valid to be true"
             exit 1
           fi
+
+  pr-live-validation:
+    name: "Live Pull Request Action Validation"
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate PR Commits (Conventional Commits)
+        uses: ./actions/validate-commit
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          require-jira-id: "false"
+          check-conventional-commit: "true"
+          post-pr-comment: "true"
+
+      - name: Validate Branch Promotion (Trunk-Based)
+        uses: ./actions/validate-branch-promotion
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          strategy: "trunk-based"
+          fail-on-violation: "true"
+          post-comment: "true"
+
+      - name: Verify Independent Review Governance
+        uses: ./actions/prevent-committer-approval
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          fail-on-violation: "false"
+          post-comment: "true"
+
