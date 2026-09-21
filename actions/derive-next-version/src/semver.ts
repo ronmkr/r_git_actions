@@ -18,12 +18,6 @@ export function parseSemVer(tag: string): SemVer | null {
   };
 }
 
-/**
- * Compares two SemVer objects descending (highest version first).
- */
-export function compareSemVer(a: SemVer, b: SemVer): number {
-  return b.major - a.major || b.minor - a.minor || b.patch - a.patch;
-}
 
 /**
  * Increments SemVer version strictly formatted as X.Y.Z (no v prefix).

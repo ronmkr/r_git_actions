@@ -49,7 +49,7 @@ describe("Feature: Jira REST API Status Validation", () => {
     expect(res.status).toBe("In Progress");
   });
 
-  it("fails validation when Jira status is not in allowed list", async () => {
+  it("fails validation when Jira status is Open or To Do", async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -64,6 +64,43 @@ describe("Feature: Jira REST API Status Validation", () => {
     });
 
     expect(res.isValid).toBe(false);
-    expect(res.error).toContain("Expected one of: [In Progress]");
+    expect(res.error).toContain("cannot be Open/To-Do");
+  });
+
+  it("fails validation when Jira status is Open even if included in custom allowed statuses", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        fields: { status: { name: "Open" } },
+      }),
+    } as any);
+
+    const res = await validateJiraStatus("PROJ-123", {
+      baseUrl: "https://example.atlassian.net",
+      apiToken: "secret",
+      allowedStatuses: ["Open", "In Progress"],
+    });
+
+    expect(res.isValid).toBe(false);
+    expect(res.error).toContain("disallowed state 'Open'");
+  });
+
+  it("respects custom disallowed-jira-statuses variable", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        fields: { status: { name: "Draft" } },
+      }),
+    } as any);
+
+    const res = await validateJiraStatus("PROJ-123", {
+      baseUrl: "https://example.atlassian.net",
+      apiToken: "secret",
+      allowedStatuses: ["In Progress", "Draft"],
+      disallowedStatuses: ["Draft", "Blocked"],
+    });
+
+    expect(res.isValid).toBe(false);
+    expect(res.error).toContain("disallowed state 'Draft'");
   });
 });

@@ -1,4 +1,4 @@
-import { parseSemVer, compareSemVer, incrementSemVer } from "../semver";
+import { parseSemVer, incrementSemVer } from "../semver";
 import { SemVer } from "../types";
 
 describe("SemVer Module (X.Y.Z only)", () => {
@@ -30,25 +30,6 @@ describe("SemVer Module (X.Y.Z only)", () => {
       expect(parseSemVer("latest")).toBeNull();
       expect(parseSemVer("release-2026")).toBeNull();
       expect(parseSemVer("v1.0.0-beta")).toBeNull();
-    });
-  });
-
-  describe("compareSemVer", () => {
-    it("sorts SemVer objects descending", () => {
-      const tags: SemVer[] = [
-        { tagName: "v1.0.0", raw: "1.0.0", major: 1, minor: 0, patch: 0 },
-        { tagName: "v2.1.0", raw: "2.1.0", major: 2, minor: 1, patch: 0 },
-        { tagName: "v1.2.5", raw: "1.2.5", major: 1, minor: 2, patch: 5 },
-        { tagName: "v2.0.9", raw: "2.0.9", major: 2, minor: 0, patch: 9 },
-      ];
-
-      const sorted = tags.sort(compareSemVer);
-      expect(sorted.map((t) => t.raw)).toEqual([
-        "2.1.0",
-        "2.0.9",
-        "1.2.5",
-        "1.0.0",
-      ]);
     });
   });
 

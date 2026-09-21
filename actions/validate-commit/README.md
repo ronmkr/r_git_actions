@@ -62,6 +62,7 @@ Verifies that the referenced Jira ticket exists and is in an acceptable workflow
           jira-api-token: ${{ secrets.JIRA_API_TOKEN }}
           jira-user-email: ${{ secrets.JIRA_USER_EMAIL }}
           allowed-jira-statuses: "In Progress,Work In Progress,In Development"
+          disallowed-jira-statuses: "Open,To Do,To-Do,Todo,Backlog"
 ```
 
 ---

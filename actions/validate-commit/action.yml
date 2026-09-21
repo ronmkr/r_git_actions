@@ -57,6 +57,11 @@ inputs:
     required: false
     default: "In Progress,Work In Progress,In Development"
 
+  disallowed-jira-statuses:
+    description: "Comma-separated list of prohibited Jira issue statuses (e.g. Open, To Do)."
+    required: false
+    default: "Open,To Do,To-Do,Todo,Backlog"
+
   check-all-pr-commits:
     description: "On pull_request events, whether to validate all commits in the PR branch."
     required: false

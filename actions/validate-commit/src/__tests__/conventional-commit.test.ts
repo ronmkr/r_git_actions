@@ -32,6 +32,20 @@ describe("Feature: Conventional Commits Validation", () => {
     }
   });
 
+  it("passes when custom Jira regex pattern is prefixed or suffixed", () => {
+    const customRegex = "[A-Z]{3,4}_[0-9]+";
+    const valid = [
+      "[PROJ_123] feat: add user profile",
+      "CORE_456: fix(auth): session expiration",
+      "feat: add export functionality (PROJ_999)",
+    ];
+
+    for (const msg of valid) {
+      const res = validateConventionalCommit(msg, customRegex);
+      expect(res.isValid).toBe(true);
+    }
+  });
+
   it("fails when commit does not match conventional format", () => {
     const invalid = [
       "Fixed bug in auth",

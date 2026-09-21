@@ -8,6 +8,7 @@ export interface JiraApiOptions {
   apiToken: string;
   userEmail?: string;
   allowedStatuses?: string[];
+  disallowedStatuses?: string[];
 }
 
 export interface JiraStatusCheckResult {
@@ -62,7 +63,13 @@ export async function validateJiraStatus(
   issueKey: string,
   options: JiraApiOptions
 ): Promise<JiraStatusCheckResult> {
-  const { baseUrl, apiToken, userEmail, allowedStatuses = ["In Progress", "Work In Progress", "In Development"] } = options;
+  const {
+    baseUrl,
+    apiToken,
+    userEmail,
+    allowedStatuses = ["In Progress", "Work In Progress", "In Development"],
+    disallowedStatuses = ["Open", "To Do", "To-Do", "Todo", "Backlog"],
+  } = options;
 
   if (!baseUrl || !apiToken) {
     return {
@@ -81,8 +88,19 @@ export async function validateJiraStatus(
     };
   }
 
+  const normStatus = status.trim().toLowerCase();
+  const disallowedNormalized = disallowedStatuses.map((s) => s.trim().toLowerCase());
+  if (disallowedNormalized.includes(normStatus)) {
+    return {
+      isValid: false,
+      issueKey,
+      status,
+      error: `Jira issue '${issueKey}' is in disallowed state '${status}' (cannot be Open/To-Do).`,
+    };
+  }
+
   const allowedNormalized = allowedStatuses.map((s) => s.trim().toLowerCase());
-  if (!allowedNormalized.includes(status.trim().toLowerCase())) {
+  if (allowedNormalized.length > 0 && !allowedNormalized.includes(normStatus)) {
     return {
       isValid: false,
       issueKey,

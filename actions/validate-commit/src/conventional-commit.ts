@@ -15,14 +15,17 @@ export interface ConventionalCommitResult {
  * Validates if the commit header matches Conventional Commits format.
  * Strips Jira issue key tags (e.g., [PROJ-123] or PROJ-123:) before validating.
  */
-export function validateConventionalCommit(commitMessage: string): ConventionalCommitResult {
+export function validateConventionalCommit(
+  commitMessage: string,
+  jiraRegex?: string
+): ConventionalCommitResult {
   const header = commitMessage.trim().split(/\r?\n/)[0] || "";
 
-  // Strip leading or trailing Jira tags if present
-  const cleaned = header
-    .replace(/^\[[A-Z][A-Z0-9]+-[0-9]+\]\s*/i, "")
-    .replace(/^[A-Z][A-Z0-9]+-[0-9]+:\s*/i, "")
-    .replace(/\s*\([A-Z][A-Z0-9]+-[0-9]+\)$/i, "")
+  // Strip standard Jira tags: leading [KEY] / KEY: or trailing (KEY)
+  const tagPat = jiraRegex && jiraRegex.trim() ? `(?:${jiraRegex.trim()}|[A-Z][A-Z0-9]+-[0-9]+)` : `[A-Z][A-Z0-9]+-[0-9]+`;
+  let cleaned = header
+    .replace(new RegExp(`^(?:\\[${tagPat}\\]|${tagPat}:)\\s*`, "i"), "")
+    .replace(new RegExp(`\\s*\\(?${tagPat}\\)?$`, "i"), "")
     .trim();
 
   const matches = CONVENTIONAL_COMMIT_REGEX.test(cleaned);

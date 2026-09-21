@@ -252,6 +252,12 @@ r_git_actions/
 
 ---
 
+## 📖 Documentation & Guides
+
+- **[Conventional Commits & Automated SemVer Versioning Guide](docs/CONVENTIONAL_COMMITS_AND_VERSIONING.md)**: Deep dive into commit formatting specifications, Jira tag prefixes, bump precedence rules, chronological tag resolution, and end-to-end CI/CD workflow configuration.
+
+---
+
 ## 📄 License
 
 This project is licensed under the [MIT License](LICENSE).

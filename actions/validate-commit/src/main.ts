@@ -12,17 +12,16 @@ function getBool(name: string, defaultValue = false): boolean {
   return val === "true" || val === "1" || val === "yes";
 }
 
+const parseCsv = (name: string) =>
+  core.getInput(name).split(",").map((s) => s.trim()).filter(Boolean);
+
 export async function run(): Promise<void> {
   try {
     // 1. Read Inputs
     const explicitMessage = core.getInput("commit-message");
     const requireJiraId = getBool("require-jira-id", true);
     const jiraRegex = core.getInput("jira-regex");
-    const jiraProjectKeys = core
-      .getInput("jira-project-keys")
-      .split(",")
-      .map((k) => k.trim())
-      .filter(Boolean);
+    const jiraProjectKeys = parseCsv("jira-project-keys");
 
     const checkConventional = getBool("check-conventional-commit", false);
     const checkJiraStatus = getBool("validate-jira-status", false);
@@ -31,11 +30,8 @@ export async function run(): Promise<void> {
     if (jiraApiToken) core.setSecret(jiraApiToken);
 
     const jiraUserEmail = core.getInput("jira-user-email");
-    const allowedStatuses = core
-      .getInput("allowed-jira-statuses")
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
+    const allowedStatuses = parseCsv("allowed-jira-statuses");
+    const disallowedStatuses = parseCsv("disallowed-jira-statuses");
 
     const postPrComment = getBool("post-pr-comment", true);
     const checkAllPrCommits = getBool("check-all-pr-commits", true);
@@ -80,7 +76,7 @@ export async function run(): Promise<void> {
 
       // Feature 2: Validate Conventional Commit (Optional)
       if (checkConventional) {
-        const convResult = validateConventionalCommit(message);
+        const convResult = validateConventionalCommit(message, jiraRegex);
         if (!convResult.isValid && convResult.error) {
           commitErrors.push(convResult.error);
         }
@@ -94,6 +90,7 @@ export async function run(): Promise<void> {
             apiToken: jiraApiToken,
             userEmail: jiraUserEmail,
             allowedStatuses,
+            disallowedStatuses,
           });
 
           if (statusResult.status) {
