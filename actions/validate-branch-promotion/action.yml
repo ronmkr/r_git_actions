@@ -1,0 +1,69 @@
+name: "Validate Branch Promotion Flow"
+description: "Enforces Pull Request branch merge promotion policies (e.g. GitFlow develop -> main, GitOps dev -> uat -> prd) with sticky PR feedback comments."
+author: "ronmkr"
+
+branding:
+  icon: "git-pull-request"
+  color: "blue"
+
+inputs:
+  strategy:
+    description: "Branching model to enforce: 'gitops', 'gitflow', 'trunk-based', or 'custom'."
+    required: false
+    default: "gitops"
+
+  base-branch:
+    description: "Target branch being merged into. Defaults to PR base ref."
+    required: false
+    default: ""
+
+  head-branch:
+    description: "Source branch being merged from. Defaults to PR head ref."
+    required: false
+    default: ""
+
+  default-branch:
+    description: "Primary default production branch (typically 'main' or 'prod')."
+    required: false
+    default: "main"
+
+  custom-promotion-order:
+    description: "Comma-separated sequence of branches for custom promotion (e.g. 'dev,staging,prod')."
+    required: false
+    default: ""
+
+  fail-on-violation:
+    description: "Whether to fail the workflow run if the promotion hierarchy is violated."
+    required: false
+    default: "true"
+
+  post-comment:
+    description: "Whether to post an idempotent explanatory comment on the PR on failure."
+    required: false
+    default: "true"
+
+  github-token:
+    description: "GitHub Token or PAT with 'pull-requests: write' scope (required only for PR comments)."
+    required: false
+    default: ${{ github.token }}
+
+  repository:
+    description: "Target repository in 'owner/repo' format. Defaults to current repository."
+    required: false
+    default: ${{ github.repository }}
+
+outputs:
+  is-valid:
+    description: "'true' if the branch promotion hierarchy is satisfied, 'false' otherwise."
+  strategy:
+    description: "The evaluated branching strategy."
+  base-branch:
+    description: "The target branch."
+  head-branch:
+    description: "The source branch."
+  violation-reason:
+    description: "Detailed reason for promotion violation if invalid."
+
+runs:
+  using: "node20"
+  main: "dist/index.js"

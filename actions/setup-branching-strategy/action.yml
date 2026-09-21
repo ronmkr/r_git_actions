@@ -1,0 +1,109 @@
+name: "Setup Branching Strategy"
+description: "Idempotently creates, configures, and protects branches using modern GitHub Rulesets with enterprise best practices (minimum 2 approvers, CODEOWNERS, thread resolution, blocks direct commits)."
+author: "ronmkr"
+
+branding:
+  icon: "git-branch"
+  color: "purple"
+
+inputs:
+  strategy:
+    description: "Branching model to establish: 'trunk-based', 'gitflow', 'gitops', or 'custom'."
+    required: false
+    default: "trunk-based"
+
+  allowed-actors:
+    description: "Comma-separated GitHub usernames permitted to execute this workflow (e.g. 'octocat,ronmkr'). Leave empty to allow all."
+    required: false
+    default: ""
+
+  ruleset-name:
+    description: "Name of the GitHub Ruleset. If a ruleset with this name already exists, it is updated in-place to avoid duplicate rulesets."
+    required: false
+    default: ""
+
+  repository:
+    description: "Target GitHub repository in 'owner/repo' format. Defaults to the current repository."
+    required: false
+    default: ${{ github.repository }}
+
+  github-token:
+    description: "GitHub Token or PAT with 'admin:repo' or 'repo' scope (must have administration permissions for rulesets)."
+    required: false
+    default: ${{ github.token }}
+
+  default-branch:
+    description: "Base branch to branch new branches from (typically 'main')."
+    required: false
+    default: "main"
+
+  branches:
+    description: "Comma-separated list of branches (used when strategy is 'custom', or to add extra branches)."
+    required: false
+    default: ""
+
+  enforce-protection:
+    description: "Whether to create or update GitHub Rulesets on the managed branches."
+    required: false
+    default: "true"
+
+  required-approvals:
+    description: "Number of required approving reviews in the pull request rule (best practice: minimum 2)."
+    required: false
+    default: "2"
+
+  dismiss-stale-reviews:
+    description: "Automatically dismiss previous approvals when new commits are pushed."
+    required: false
+    default: "true"
+
+  require-review-thread-resolution:
+    description: "Require all review comments and conversations to be resolved before merging."
+    required: false
+    default: "true"
+
+  require-last-push-approval:
+    description: "Require approval from someone other than the person who pushed the most recent commit."
+    required: false
+    default: "true"
+
+  require-code-owner-review:
+    description: "Require approval from designated code owners specified in CODEOWNERS."
+    required: false
+    default: "true"
+
+  require-linear-history:
+    description: "Prevent merge commits and enforce a clean, linear commit history."
+    required: false
+    default: "true"
+
+  require-signed-commits:
+    description: "Require all commits pushed to protected branches to be cryptographically signed."
+    required: false
+    default: "false"
+
+  update-default-branch:
+    description: "Whether to update the repository's default branch on GitHub to match the strategy (e.g. 'develop' for gitflow, 'dev' for gitops)."
+    required: false
+    default: "false"
+
+  post-comment:
+    description: "Whether to post an explanatory comment on the Pull Request if executed in a PR context."
+    required: false
+    default: "true"
+
+outputs:
+  strategy:
+    description: "The branching strategy that was applied."
+  created-branches:
+    description: "Comma-separated list of branches that were newly created."
+  ruleset-id:
+    description: "The GitHub Ruleset ID created or updated."
+  ruleset-action:
+    description: "Whether the ruleset was 'created' or 'updated'."
+  default-branch:
+    description: "The primary or default branch for the strategy."
+
+runs:
+  using: "node20"
+  main: "dist/index.js"

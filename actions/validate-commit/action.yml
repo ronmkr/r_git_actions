@@ -1,0 +1,87 @@
+name: "Validate Commit Messages"
+description: "Validates Git commit messages for Jira ticket keys (regex), Jira issue status (REST API), and Conventional Commits."
+author: "ronmkr"
+
+branding:
+  icon: "check-circle"
+  color: "blue"
+
+inputs:
+  commit-message:
+    description: "Explicit commit message to validate. If omitted, automatically extracted from PR commits or HEAD commit."
+    required: false
+    default: ""
+
+  require-jira-id:
+    description: "Whether to require a Jira issue key (regex) in the commit message. Primary check."
+    required: false
+    default: "true"
+
+  jira-regex:
+    description: "Custom regex pattern for Jira issue keys. Default: [A-Z][A-Z0-9]+-[0-9]+"
+    required: false
+    default: ""
+
+  jira-project-keys:
+    description: "Comma-separated allowed Jira project prefixes (e.g., 'PROJ,CORE'). If empty, allows any valid project key."
+    required: false
+    default: ""
+
+  check-conventional-commit:
+    description: "Whether to validate Conventional Commits format (<type>(<scope>): <subject>). Optional."
+    required: false
+    default: "false"
+
+  validate-jira-status:
+    description: "Whether to query Jira REST API to verify issue status (e.g., In Progress). Optional."
+    required: false
+    default: "false"
+
+  jira-base-url:
+    description: "Base URL of Jira instance (e.g., https://yourcompany.atlassian.net). Required if validate-jira-status is true."
+    required: false
+    default: ""
+
+  jira-api-token:
+    description: "Jira API Token (Cloud) or PAT (Server/DC). Required if validate-jira-status is true."
+    required: false
+    default: ""
+
+  jira-user-email:
+    description: "Jira account email (required for Jira Cloud Basic Authentication). Required if validate-jira-status is true on Cloud."
+    required: false
+    default: ""
+
+  allowed-jira-statuses:
+    description: "Comma-separated list of acceptable Jira issue statuses."
+    required: false
+    default: "In Progress,Work In Progress,In Development"
+
+  check-all-pr-commits:
+    description: "On pull_request events, whether to validate all commits in the PR branch."
+    required: false
+    default: "true"
+
+  post-pr-comment:
+    description: "Whether to publish or update a comment on the Pull Request when validation fails. Default: true"
+    required: false
+    default: "true"
+
+  github-token:
+    description: "GitHub token for querying PR commits and publishing PR comments."
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  is-valid:
+    description: "'true' if all enabled validations passed, 'false' otherwise."
+  jira-id:
+    description: "Comma-separated detected Jira issue key(s)."
+  jira-status:
+    description: "Comma-separated status name(s) fetched from Jira."
+  errors:
+    description: "Newline-separated list of validation failure messages."
+
+runs:
+  using: "node20"
+  main: "dist/index.js"

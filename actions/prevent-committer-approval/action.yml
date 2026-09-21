@@ -1,0 +1,55 @@
+name: "Prevent Committer Approval"
+description: "Prohibits PR authors and committers from approving their own Pull Requests, automatically dismissing self-approvals to enforce independent code reviews."
+author: "ronmkr"
+
+branding:
+  icon: "shield"
+  color: "red"
+
+inputs:
+  github-token:
+    description: "GitHub Token or PAT with 'pull-requests: write' scope (required to dismiss reviews and comment)."
+    required: false
+    default: ${{ github.token }}
+
+  pull-number:
+    description: "Target Pull Request number. Defaults to PR number from event context."
+    required: false
+    default: ""
+
+  repository:
+    description: "Target repository in 'owner/repo' format. Defaults to current repository."
+    required: false
+    default: ${{ github.repository }}
+
+  dismiss-message:
+    description: "Custom dismissal reason supplied when revoking a committer approval."
+    required: false
+    default: "Automated Governance: PR authors and committers cannot approve their own pull requests."
+
+  post-comment:
+    description: "Whether to post an informative comment on the PR when an approval is dismissed."
+    required: false
+    default: "true"
+
+  fail-on-violation:
+    description: "Whether to fail the workflow step when a committer approval is detected."
+    required: false
+    default: "true"
+
+  exclude-bots:
+    description: "Whether to ignore bot accounts when inspecting approval reviews."
+    required: false
+    default: "false"
+
+outputs:
+  has-violation:
+    description: "'true' if any committer or author approval was detected, 'false' otherwise."
+  dismissed-approvers:
+    description: "Comma-separated list of reviewer usernames whose approvals were dismissed."
+  dismissed-count:
+    description: "Total count of dismissed non-compliant reviews."
+
+runs:
+  using: "node20"
+  main: "dist/index.js"

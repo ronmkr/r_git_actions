@@ -1,0 +1,167 @@
+name: "CI & Action Self-Test"
+
+on:
+  push:
+    branches: ["*"]
+  pull_request:
+    branches: ["*"]
+
+jobs:
+  test-validate-commit:
+    name: "Test validate-commit Action"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: "actions/validate-commit/package-lock.json"
+
+      - name: Install dependencies
+        working-directory: actions/validate-commit
+        run: npm ci
+
+      - name: Run Jest Test Suite
+        working-directory: actions/validate-commit
+        run: npm test
+
+      - name: Build & Bundle
+        working-directory: actions/validate-commit
+        run: npm run bundle
+
+      - name: Verify Bundle In Sync (No Drift)
+        working-directory: actions/validate-commit
+        run: |
+          git diff --exit-code dist/ || (echo "Error: validate-commit dist/ is out of sync with src/. Run 'npm run bundle' locally and commit the changes." && exit 1)
+
+      - name: Self-Test Default Regex Validation
+        id: test-default
+        uses: ./actions/validate-commit
+        with:
+          commit-message: "[PROJ-101] Updated configurations for production"
+          require-jira-id: "true"
+          jira-project-keys: "PROJ"
+
+      - name: Verify Outputs
+        run: |
+          if [ "${{ steps.test-default.outputs.is-valid }}" != "true" ]; then
+            echo "Expected is-valid to be true"
+            exit 1
+          fi
+          if [ "${{ steps.test-default.outputs.jira-id }}" != "PROJ-101" ]; then
+            echo "Expected jira-id to be PROJ-101"
+            exit 1
+          fi
+
+  test-setup-branching-strategy:
+    name: "Test setup-branching-strategy Action"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: "actions/setup-branching-strategy/package-lock.json"
+
+      - name: Install dependencies
+        working-directory: actions/setup-branching-strategy
+        run: npm ci
+
+      - name: Run Jest Test Suite
+        working-directory: actions/setup-branching-strategy
+        run: npm test
+
+      - name: Build & Bundle
+        working-directory: actions/setup-branching-strategy
+        run: npm run bundle
+
+      - name: Verify Bundle In Sync (No Drift)
+        working-directory: actions/setup-branching-strategy
+        run: |
+          git diff --exit-code dist/ || (echo "Error: setup-branching-strategy dist/ is out of sync with src/. Run 'npm run bundle' locally and commit the changes." && exit 1)
+
+  test-prevent-committer-approval:
+    name: "Test prevent-committer-approval Action"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: "actions/prevent-committer-approval/package-lock.json"
+
+      - name: Install dependencies
+        working-directory: actions/prevent-committer-approval
+        run: npm ci
+
+      - name: Run Jest Test Suite
+        working-directory: actions/prevent-committer-approval
+        run: npm test
+
+      - name: Build & Bundle
+        working-directory: actions/prevent-committer-approval
+        run: npm run bundle
+
+      - name: Verify Bundle In Sync (No Drift)
+        working-directory: actions/prevent-committer-approval
+        run: |
+          git diff --exit-code dist/ || (echo "Error: prevent-committer-approval dist/ is out of sync with src/. Run 'npm run bundle' locally and commit the changes." && exit 1)
+
+  test-validate-branch-promotion:
+    name: "Test validate-branch-promotion Action"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: "actions/validate-branch-promotion/package-lock.json"
+
+      - name: Install dependencies
+        working-directory: actions/validate-branch-promotion
+        run: npm ci
+
+      - name: Run Jest Test Suite
+        working-directory: actions/validate-branch-promotion
+        run: npm test
+
+      - name: Build & Bundle
+        working-directory: actions/validate-branch-promotion
+        run: npm run bundle
+
+      - name: Verify Bundle In Sync (No Drift)
+        working-directory: actions/validate-branch-promotion
+        run: |
+          git diff --exit-code dist/ || (echo "Error: validate-branch-promotion dist/ is out of sync with src/. Run 'npm run bundle' locally and commit the changes." && exit 1)
+
+      - name: Self-Test Branch Promotion Validation
+        id: test-promotion
+        uses: ./actions/validate-branch-promotion
+        with:
+          strategy: "gitops"
+          base-branch: "uat"
+          head-branch: "dev"
+          fail-on-violation: "true"
+
+      - name: Verify Promotion Outputs
+        run: |
+          if [ "${{ steps.test-promotion.outputs.is-valid }}" != "true" ]; then
+            echo "Expected is-valid to be true"
+            exit 1
+          fi
