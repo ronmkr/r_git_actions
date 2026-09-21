@@ -44,10 +44,11 @@ export async function run(): Promise<void> {
     }
 
     const baseDefaultBranch = core.getInput("default-branch") || "main";
-    const customBranchesInput = core.getInput("branches");
-    const customBranches = customBranchesInput
-      ? customBranchesInput.split(",").map((s) => s.trim()).filter(Boolean)
-      : [];
+    const customBranches = core
+      .getInput("branches")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
 
     const enforceProtection = getBool("enforce-protection", true);
     const rawApprovals = parseInt(core.getInput("required-approvals") || "2", 10);

@@ -1,0 +1,33 @@
+name: "Action Approval Gate"
+description: "Synchronous guard action validating previous step outcomes and actor permissions before native GitHub environment approval (e.g. terraform plan -> green -> approve -> apply)."
+author: "ronmkr"
+
+branding:
+  icon: "check-circle"
+  color: "green"
+
+inputs:
+  previous-outcome:
+    description: "Outcome of the previous step or job (e.g. '${{ steps.tf_plan.outcome }}' or '${{ needs.plan.result }}')."
+    required: false
+    default: "success"
+
+  expected-outcome:
+    description: "Expected outcome required to proceed (defaults to 'success')."
+    required: false
+    default: "success"
+
+  allowed-actors:
+    description: "Comma or newline separated list of GitHub usernames authorized to trigger/proceed. If omitted, all repository members are permitted."
+    required: false
+    default: ""
+
+outputs:
+  is-valid:
+    description: "'true' if previous outcome matches expected and actor is authorized, 'false' otherwise."
+  actor:
+    description: "The evaluated GitHub actor."
+
+runs:
+  using: "node24"
+  main: "dist/index.js"

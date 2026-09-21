@@ -5,9 +5,7 @@ type OctokitClient = ReturnType<typeof github.getOctokit>;
 
 export function cleanHeader(header: string): string {
   return header
-    .replace(/^\[[A-Z][A-Z0-9]+-[0-9]+\]\s*/i, "")
-    .replace(/^[A-Z][A-Z0-9]+-[0-9]+:\s*/i, "")
-    .replace(/\s*\([A-Z][A-Z0-9]+-[0-9]+\)$/i, "")
+    .replace(/^\[[A-Z0-9]+-[0-9]+\]\s*|^[A-Z0-9]+-[0-9]+:\s*|\s*\([A-Z0-9]+-[0-9]+\)$/gi, "")
     .trim();
 }
 

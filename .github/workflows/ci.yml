@@ -295,3 +295,37 @@ jobs:
             echo "Expected env VERSION to be set"
             exit 1
           fi
+
+  test-action-approval-gate:
+    name: "3. CI/CD - Test action-approval-gate"
+    runs-on: ubuntu-latest
+    if: always() && !cancelled() && (github.event_name == 'push' || needs.find-next-version.result == 'success')
+    needs: [find-next-version]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: "actions/action-approval-gate/package-lock.json"
+
+      - name: Install dependencies
+        working-directory: actions/action-approval-gate
+        run: npm ci
+
+      - name: Run Jest Test Suite
+        working-directory: actions/action-approval-gate
+        run: npm test
+
+      - name: Build & Bundle
+        working-directory: actions/action-approval-gate
+        run: npm run bundle
+
+      - name: Verify Bundle In Sync (No Drift)
+        if: github.actor != 'dependabot[bot]'
+        working-directory: actions/action-approval-gate
+        run: |
+          git diff --exit-code dist/ || (echo "Error: action-approval-gate dist/ is out of sync with src/. Run 'npm run bundle' locally and commit the changes." && exit 1)

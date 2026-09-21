@@ -13,6 +13,7 @@ A centralized collection of production-ready, reusable GitHub Actions built with
 | **[prevent-committer-approval](actions/prevent-committer-approval/README.md)** | Enforces strictly independent code reviews by preventing PR authors and committers from approving their own PRs, automatically dismissing self-approvals via GitHub REST API. | `ronmkr/r_git_actions/actions/prevent-committer-approval@v1` | Node 24 |
 | **[validate-branch-promotion](actions/validate-branch-promotion/README.md)** | Enforces structured branch merge promotion policies (e.g. `dev -> uat -> prd` in GitOps, `develop -> main` in GitFlow) on Pull Requests. | `ronmkr/r_git_actions/actions/validate-branch-promotion@v1` | Node 24 |
 | **[derive-next-version](actions/derive-next-version/README.md)** | Automates release versioning via Conventional Commits and SemVer 2.0, exporting outputs (`version`, `bump_type`, `has_bump`) and environment variables (`$VERSION`, `$NEXT_VERSION`). | `ronmkr/r_git_actions/actions/derive-next-version@v1` | Node 24 |
+| **[action-approval-gate](actions/action-approval-gate/README.md)** | Interactive approval gate allowing designated actors to approve or reject subsequent actions or workflow steps (e.g., terraform plan -> approve -> apply). | `ronmkr/r_git_actions/actions/action-approval-gate@v1` | Node 24 |
 
 ---
 

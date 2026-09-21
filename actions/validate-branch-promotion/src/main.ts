@@ -17,10 +17,11 @@ export async function run(): Promise<void> {
     const headBranch = (core.getInput("head-branch") || prPayload?.head?.ref || "").trim();
     const defaultBranch = (core.getInput("default-branch") || "main").trim();
 
-    const customOrderInput = core.getInput("custom-promotion-order");
-    const customOrder = customOrderInput
-      ? customOrderInput.split(",").map((s) => s.trim()).filter(Boolean)
-      : undefined;
+    const customOrder = core
+      .getInput("custom-promotion-order")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
 
     const failOnViolation = getBool("fail-on-violation", true);
     const postComment = getBool("post-comment", true);
