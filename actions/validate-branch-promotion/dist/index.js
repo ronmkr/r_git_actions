@@ -30204,11 +30204,13 @@ exports.validatePromotionHierarchy = validatePromotionHierarchy;
 function matchesPattern(source, pattern) {
     if (pattern === "*")
         return true;
-    if (pattern.endsWith("/*")) {
-        const prefix = pattern.slice(0, -2);
-        return source === prefix || source.startsWith(`${prefix}/`);
+    const s = source.toLowerCase();
+    const p = pattern.toLowerCase();
+    if (p.endsWith("/*")) {
+        const prefix = p.slice(0, -2);
+        return s === prefix || s.startsWith(`${prefix}/`);
     }
-    return source.toLowerCase() === pattern.toLowerCase();
+    return s === p;
 }
 /**
  * Validates that a Pull Request conforms to the branching strategy's promotion hierarchy.

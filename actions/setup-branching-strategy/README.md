@@ -102,6 +102,7 @@ Managing repository rulesets and default branches requires elevated permissions 
 | `require-linear-history` | Prevent merge commits and enforce linear history. | No | `"true"` |
 | `require-signed-commits` | Require all commits pushed to protected branches to be signed. | No | `"false"` |
 | `update-default-branch` | Update repo's default branch on GitHub to match strategy. | No | `"false"` |
+| `auto-delete-head-branches` | Automatically delete feature/head branches once merged into core branches (core branches remain protected from deletion). | No | `"true"` |
 | `post-comment` | Post or update an explanatory comment on the PR if executed in PR context. | No | `"true"` |
 
 ---

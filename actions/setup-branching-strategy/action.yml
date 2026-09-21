@@ -92,6 +92,11 @@ inputs:
     required: false
     default: "true"
 
+  auto-delete-head-branches:
+    description: "Automatically delete head/feature branches once merged into core branches (core branches remain strictly protected from deletion)."
+    required: false
+    default: "true"
+
 outputs:
   strategy:
     description: "The branching strategy that was applied."

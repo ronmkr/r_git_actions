@@ -1,4 +1,4 @@
-import { upsertRepoRuleset } from "../ruleset-manager";
+import { upsertRepoRuleset, buildRulesetPayload } from "../ruleset-manager";
 
 describe("Feature: Repository Ruleset Manager", () => {
   const defaultOptions = {
@@ -6,6 +6,31 @@ describe("Feature: Repository Ruleset Manager", () => {
     dismissStaleReviews: true,
     requireLinearHistory: true,
   };
+
+  it("builds a declarative JSON ruleset blueprint with flag overrides", () => {
+    const payload = buildRulesetPayload("Strategy: TRUNK-BASED", ["main"], {
+      requiredApprovals: 3,
+      dismissStaleReviews: true,
+      requireLinearHistory: true,
+      requireSignedCommits: true,
+      blockDeletion: true,
+      blockForcePush: true,
+    });
+
+    expect(payload.name).toBe("Strategy: TRUNK-BASED");
+    expect(payload.target).toBe("branch");
+    expect(payload.enforcement).toBe("active");
+    expect(payload.conditions.ref_name.include).toEqual(["refs/heads/main"]);
+
+    // Verify rules JSON array
+    expect(payload.rules).toContainEqual({ type: "deletion" });
+    expect(payload.rules).toContainEqual({ type: "non_fast_forward" });
+    expect(payload.rules).toContainEqual({ type: "required_linear_history" });
+    expect(payload.rules).toContainEqual({ type: "required_signatures" });
+
+    const prRule = payload.rules.find((r) => r.type === "pull_request");
+    expect(prRule?.parameters.required_approving_review_count).toBe(3);
+  });
 
   it("creates a new ruleset when no existing matching ruleset is found", () => {
     const mockRequest = jest.fn().mockImplementation((route: string) => {
@@ -21,6 +46,9 @@ describe("Feature: Repository Ruleset Manager", () => {
             enforcement: "active",
           },
         });
+      }
+      if (route === "PATCH /repos/{owner}/{repo}") {
+        return Promise.resolve({ data: { delete_branch_on_merge: true } });
       }
       return Promise.reject(new Error(`Unexpected route ${route}`));
     });
@@ -79,6 +107,9 @@ describe("Feature: Repository Ruleset Manager", () => {
           },
         });
       }
+      if (route === "PATCH /repos/{owner}/{repo}") {
+        return Promise.resolve({ data: { delete_branch_on_merge: true } });
+      }
       return Promise.reject(new Error(`Unexpected route ${route}`));
     });
 
@@ -111,20 +142,72 @@ describe("Feature: Repository Ruleset Manager", () => {
     });
   });
 
-  it("handles GitHub API errors gracefully", () => {
-    const mockRequest = jest.fn().mockRejectedValue(new Error("Resource not accessible by integration"));
+  it("enforces delete_branch_on_merge=true on repository setting alongside ruleset creation", async () => {
+    const mockRequest = jest.fn().mockImplementation((route: string) => {
+      if (route === "GET /repos/{owner}/{repo}/rulesets") {
+        return Promise.resolve({ data: [] });
+      }
+      if (route === "POST /repos/{owner}/{repo}/rulesets") {
+        return Promise.resolve({
+          data: { id: 100, name: "Strategy: TRUNK-BASED", target: "branch", enforcement: "active" },
+        });
+      }
+      if (route === "PATCH /repos/{owner}/{repo}") {
+        return Promise.resolve({ data: { delete_branch_on_merge: true } });
+      }
+      return Promise.reject(new Error(`Unexpected route ${route}`));
+    });
+
     const mockOctokit = { request: mockRequest } as any;
 
-    return upsertRepoRuleset(
+    const result = await upsertRepoRuleset(
       mockOctokit,
       "test-owner",
       "test-repo",
-      "Strategy: FAIL",
+      "Strategy: TRUNK-BASED",
       ["main"],
-      defaultOptions
-    ).then((result) => {
-      expect(result.id).toBe(0);
-      expect(result.error).toContain("Resource not accessible by integration");
+      { ...defaultOptions, autoDeleteHeadBranches: true }
+    );
+
+    expect(result.id).toBe(100);
+    expect(mockRequest).toHaveBeenCalledWith(
+      "PATCH /repos/{owner}/{repo}",
+      expect.objectContaining({
+        owner: "test-owner",
+        repo: "test-repo",
+        delete_branch_on_merge: true,
+      })
+    );
+  });
+
+  it("skips delete_branch_on_merge when autoDeleteHeadBranches is false", async () => {
+    const mockRequest = jest.fn().mockImplementation((route: string) => {
+      if (route === "GET /repos/{owner}/{repo}/rulesets") {
+        return Promise.resolve({ data: [] });
+      }
+      if (route === "POST /repos/{owner}/{repo}/rulesets") {
+        return Promise.resolve({
+          data: { id: 101, name: "Strategy: CUSTOM", target: "branch", enforcement: "active" },
+        });
+      }
+      return Promise.reject(new Error(`Unexpected route ${route}`));
     });
+
+    const mockOctokit = { request: mockRequest } as any;
+
+    const result = await upsertRepoRuleset(
+      mockOctokit,
+      "test-owner",
+      "test-repo",
+      "Strategy: CUSTOM",
+      ["main"],
+      { ...defaultOptions, autoDeleteHeadBranches: false }
+    );
+
+    expect(result.id).toBe(101);
+    expect(mockRequest).not.toHaveBeenCalledWith(
+      "PATCH /repos/{owner}/{repo}",
+      expect.anything()
+    );
   });
 });

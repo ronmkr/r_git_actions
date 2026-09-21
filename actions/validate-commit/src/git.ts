@@ -19,6 +19,13 @@ export interface CommitExtractionOptions {
   checkAllPrCommits?: boolean;
 }
 
+function parseCommitBlock(block: string): CommitInfo | undefined {
+  const lines = block.split(/\r?\n/);
+  const sha = lines[0]?.trim();
+  const message = lines.slice(1).join("\n").trim();
+  return message ? { sha, message } : undefined;
+}
+
 /**
  * Retrieves only the commits belonging to the Pull Request or push event.
  */
@@ -81,15 +88,9 @@ export async function getPrCommits(options: CommitExtractionOptions): Promise<Co
         const output = execSync(cmd, { encoding: "utf-8" });
         const rawBlocks = output.split("---COMMIT---").map((b) => b.trim()).filter(Boolean);
 
-        const prCommits: CommitInfo[] = [];
-        for (const block of rawBlocks) {
-          const lines = block.split(/\r?\n/);
-          const sha = lines[0]?.trim();
-          const message = lines.slice(1).join("\n").trim();
-          if (message) {
-            prCommits.push({ sha, message });
-          }
-        }
+        const prCommits: CommitInfo[] = rawBlocks
+          .map(parseCommitBlock)
+          .filter((c): c is CommitInfo => c !== undefined);
 
         if (prCommits.length > 0) {
           core.info(`Retrieved ${prCommits.length} commit(s) from git range ${pr.base.sha.substring(0, 7)}..${pr.head.sha.substring(0, 7)}.`);
@@ -124,10 +125,8 @@ export async function getPrCommits(options: CommitExtractionOptions): Promise<Co
   try {
     const headOutput = execSync('git log -1 --format="%h%n%B"', { encoding: "utf-8" }).trim();
     if (headOutput) {
-      const lines = headOutput.split(/\r?\n/);
-      const sha = lines[0]?.trim();
-      const message = lines.slice(1).join("\n").trim();
-      return [{ sha, message }];
+      const commit = parseCommitBlock(headOutput);
+      if (commit) return [commit];
     }
   } catch {
     core.debug("git log -1 failed.");

@@ -2,7 +2,7 @@ import * as core from "@actions/core";
 import * as github from "@actions/github";
 import { resolveStrategyConfig, StrategyType } from "./strategies";
 import { ensureBranchExists } from "./branch-manager";
-import { upsertRepoRuleset } from "./ruleset-manager";
+import { upsertRepoRuleset, RulesetUpsertResult } from "./ruleset-manager";
 import { checkAllowedActors } from "./auth-check";
 import { postStrategyComment } from "./comment";
 
@@ -61,6 +61,7 @@ export async function run(): Promise<void> {
     const requireSignedCommits = getBool("require-signed-commits", false);
     const updateDefaultBranch = getBool("update-default-branch", false);
     const postComment = getBool("post-comment", true);
+    const autoDeleteHeadBranches = getBool("auto-delete-head-branches", true);
     const rulesetName = (core.getInput("ruleset-name") || `Strategy: ${strategyInput.toUpperCase()}`).trim();
 
     core.info("========================================");
@@ -77,6 +78,7 @@ export async function run(): Promise<void> {
     core.info(`- Require Linear History      : ${requireLinearHistory}`);
     core.info(`- Require Signed Commits      : ${requireSignedCommits}`);
     core.info(`- Update Repo Default Ref     : ${updateDefaultBranch}`);
+    core.info(`- Auto-Delete Merged Branches : ${autoDeleteHeadBranches}`);
     core.info(`- Triggering Actor            : ${actor}`);
     core.info("========================================\n");
 
@@ -109,12 +111,11 @@ export async function run(): Promise<void> {
     }
 
     // 5. Upsert GitHub Ruleset (Idempotent: updates existing ruleset, avoiding duplicates)
-    let rulesetResult: { id: number; name: string; action: "created" | "updated"; branches: string[]; error?: string } = {
+    let rulesetResult: RulesetUpsertResult = {
       id: 0,
       name: rulesetName,
       action: "created",
       branches: strategyConfig.branches,
-      error: undefined,
     };
     if (enforceProtection) {
       rulesetResult = await upsertRepoRuleset(octokit, owner, repo, rulesetName, strategyConfig.branches, {
@@ -123,8 +124,9 @@ export async function run(): Promise<void> {
         requireLinearHistory,
         requireCodeOwnerReview,
         requireLastPushApproval,
-        requiredReviewThreadResolution: requireReviewThreadResolution,
+        requireReviewThreadResolution,
         requireSignedCommits,
+        autoDeleteHeadBranches,
       });
     }
 
@@ -160,7 +162,9 @@ export async function run(): Promise<void> {
           [{ data: "Attribute", header: true }, { data: "Details", header: true }],
           ["Repository", `${owner}/${repo}`],
           ["Strategy Model", strategyConfig.name.toUpperCase()],
-          ["Branches Managed", strategyConfig.branches.join(", ")],
+          ["Core Branches Protected", strategyConfig.branches.join(", ")],
+          ["Core Branches Protected from Deletion", "Yes (type: deletion)"],
+          ["Auto-Delete Merged Feature Branches", autoDeleteHeadBranches ? "Enabled (true)" : "Disabled"],
           ["Newly Created Branches", createdBranches.length ? createdBranches.join(", ") : "None (all existed)"],
           ["Ruleset Name", rulesetName],
           ["Ruleset Action", enforceProtection ? (rulesetResult.error ? `Failed: ${rulesetResult.error}` : `${rulesetResult.action.toUpperCase()} (#${rulesetResult.id})`) : "Disabled"],
